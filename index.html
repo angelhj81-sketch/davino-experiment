@@ -214,14 +214,25 @@ function bindSurvey(){
       if(q==='otherlangs')document.getElementById('langs-sub').classList.toggle('hidden',A.otherlangs!=='Yes');
     });
   });
+  // 입력칸: 값이 바뀔 때마다 A에 저장 (화면이 사라진 뒤에도 값 유지)
+  const textIds=['age','musicYears','toeic','abroadCountry','abroadMonths','origin','koreaDur','otherLangsText'];
+  textIds.forEach(id=>{
+    const el=document.getElementById(id);
+    if(el)el.addEventListener('input',()=>{ A['_'+id]=el.value; });
+  });
   const tn=document.getElementById('toeicNone');
-  if(tn)tn.addEventListener('change',()=>{const t=document.getElementById('toeic');t.disabled=tn.checked;if(tn.checked)t.value='';});
+  if(tn)tn.addEventListener('change',()=>{
+    const t=document.getElementById('toeic');
+    t.disabled=tn.checked; if(tn.checked){t.value=''; A['_toeic']='';}
+    A._toeicNone=tn.checked;
+  });
+  A._toeicNone=false;
 }
 
 // 설문 검증 + 판정 + 저장. 반환: {ok, eligible, reason}
+// DOM 대신 A 객체만 읽음 (on_finish 시점엔 설문 화면이 이미 사라짐)
 function processSurvey(){
-  const err=document.getElementById('surveyErr'); if(err)err.textContent="";
-  const ageV=document.getElementById('age').value;
+  const ageV=A._age||'';
   const age=parseInt(ageV,10);
   if(!A.l1)return{ok:false,msg:"Please answer question 1 (first language)."};
   if(!ageV)return{ok:false,msg:"Please enter your age."};
@@ -229,13 +240,13 @@ function processSurvey(){
   if(!A.hearing)return{ok:false,msg:"Please answer question 2 (hearing)."};
   if(!A.music)return{ok:false,msg:"Please answer the musical training question."};
   if(A.l1==='Korean'){
-    const none=document.getElementById('toeicNone').checked;
-    if(!none&&!document.getElementById('toeic').value)return{ok:false,msg:"Please enter your TOEIC score, or check 'Never taken'."};
+    const none=!!A._toeicNone;
+    if(!none&&!A._toeic)return{ok:false,msg:"Please enter your TOEIC score, or check 'Never taken'."};
     if(!A.abroad)return{ok:false,msg:"Please answer question 4 (living abroad)."};
   }
   if(A.l1==='English'){
-    if(!document.getElementById('origin').value.trim())return{ok:false,msg:"Please enter your country of origin."};
-    if(!document.getElementById('koreaDur').value||!A.koreaUnit)return{ok:false,msg:"Please answer question 4 (time in Korea)."};
+    if(!(A._origin||'').trim())return{ok:false,msg:"Please enter your country of origin."};
+    if(!A._koreaDur||!A.koreaUnit)return{ok:false,msg:"Please answer question 4 (time in Korea)."};
     if(!A.otherlangs)return{ok:false,msg:"Please answer question 5 (other languages)."};
   }
   // 판정
@@ -243,28 +254,28 @@ function processSurvey(){
   if(A.hearing==='Yes')reason='hearing';
   else if(isNaN(age)||age<20||age>39)reason='age';
   else if(A.l1==='Korean'){
-    const none=document.getElementById('toeicNone').checked;
-    const toeic=parseInt(document.getElementById('toeic').value,10);
+    const none=!!A._toeicNone;
+    const toeic=parseInt(A._toeic,10);
     if(none)reason='no_toeic'; else if(toeic<900)reason='toeic';
   }
   const eligible=(reason===null);
   let koreaMonths=null;
-  if(A.l1==='English'){const d=parseFloat(document.getElementById('koreaDur').value);koreaMonths=(A.koreaUnit==='years')?d*12:d;}
+  if(A.l1==='English'){const d=parseFloat(A._koreaDur);koreaMonths=(A.koreaUnit==='years')?d*12:d;}
   participantCode=makeCode();
   const row={
     session_id:sessionId, participant_id:participantCode, consent:true,
     age:age, gender:A.gender, l1:A.l1,
     hearing_impair:A.hearing==='Yes', music_training:A.music==='Yes',
-    music_years:A.music==='Yes'?parseFloat(document.getElementById('musicYears').value)||null:null,
-    toeic_score:(A.l1==='Korean'&&!document.getElementById('toeicNone').checked)?parseInt(document.getElementById('toeic').value,10):null,
-    toeic_none:A.l1==='Korean'?document.getElementById('toeicNone').checked:null,
+    music_years:A.music==='Yes'?parseFloat(A._musicYears)||null:null,
+    toeic_score:(A.l1==='Korean'&&!A._toeicNone)?parseInt(A._toeic,10):null,
+    toeic_none:A.l1==='Korean'?!!A._toeicNone:null,
     lived_abroad:A.l1==='Korean'?(A.abroad==='Yes'):null,
-    abroad_country:A.abroad==='Yes'?document.getElementById('abroadCountry').value.trim()||null:null,
-    abroad_months:A.abroad==='Yes'?parseFloat(document.getElementById('abroadMonths').value)||null:null,
-    origin_country:A.l1==='English'?document.getElementById('origin').value.trim():null,
+    abroad_country:A.abroad==='Yes'?(A._abroadCountry||'').trim()||null:null,
+    abroad_months:A.abroad==='Yes'?parseFloat(A._abroadMonths)||null:null,
+    origin_country:A.l1==='English'?(A._origin||'').trim():null,
     korea_months:koreaMonths,
     other_langs:A.l1==='English'?(A.otherlangs==='Yes'):null,
-    other_langs_text:A.otherlangs==='Yes'?document.getElementById('otherLangsText').value.trim()||null:null,
+    other_langs_text:A.otherlangs==='Yes'?(A._otherLangsText||'').trim()||null:null,
     eligible:eligible, exclusion_reason:reason,
     user_agent:navigator.userAgent, screen_w:screen.width, screen_h:screen.height
   };
