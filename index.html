@@ -219,8 +219,8 @@ function bindSurvey(){
 }
 
 // 설문 검증 + 판정 + 저장. 반환: {ok, eligible, reason}
-async function processSurvey(){
-  const err=document.getElementById('surveyErr'); err.textContent="";
+function processSurvey(){
+  const err=document.getElementById('surveyErr'); if(err)err.textContent="";
   const ageV=document.getElementById('age').value;
   const age=parseInt(ageV,10);
   if(!A.l1)return{ok:false,msg:"Please answer question 1 (first language)."};
@@ -268,9 +268,18 @@ async function processSurvey(){
     eligible:eligible, exclusion_reason:reason,
     user_agent:navigator.userAgent, screen_w:screen.width, screen_h:screen.height
   };
-  try{ await sb.from('subjects').insert(row); subjectSaved=true; }
-  catch(e){ return{ok:false,msg:"Could not save. Check your connection and try again."}; }
+  // 저장은 백그라운드 (화면 전환을 막지 않음). 실패해도 재시도.
+  saveSubject(row);
   return{ok:true, eligible, reason};
+}
+
+// subjects 저장 — 재시도 + 로컬 백업
+async function saveSubject(row){
+  for(let attempt=1; attempt<=3; attempt++){
+    try{ const {error}=await sb.from('subjects').insert(row); if(!error){subjectSaved=true; slog('subject saved'); return;} else throw error; }
+    catch(e){ await new Promise(r=>setTimeout(r,800*attempt)); }
+  }
+  try{ localStorage.setItem('dg_subject_backup', JSON.stringify(row)); slog('subject saved locally'); }catch(e){}
 }
 
 // ============================================================
@@ -344,8 +353,8 @@ async function main(){
   // --- 2. 설문 (검증 실패 시 같은 화면 유지) ---
   const surveyNode={type:jsPsychHtmlButtonResponse, stimulus:surveyHTML, choices:["Submit"],
     on_load:bindSurvey,
-    on_finish:async(data)=>{
-      const res=await processSurvey();
+    on_finish:(data)=>{
+      const res=processSurvey();
       data.survey_ok=res.ok; data.eligible=res.eligible; data.reason=res.reason; data.msg=res.msg;
     }};
   const surveyLoop={timeline:[surveyNode],
