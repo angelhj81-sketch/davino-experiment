@@ -3,216 +3,489 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Step 2 — Randomization + blocks</title>
+<title>Speech Perception Experiment</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://unpkg.com/jspsych@8.2.1"></script>
 <script src="https://unpkg.com/@jspsych/plugin-html-button-response@2.1.0"></script>
 <script src="https://unpkg.com/@jspsych/plugin-audio-button-response@2.1.0"></script>
 <script src="https://unpkg.com/@jspsych/plugin-preload@2.1.0"></script>
 <link rel="stylesheet" href="https://unpkg.com/jspsych@8.2.1/css/jspsych.css">
 <style>
-  body{background:#f7f8fa; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;}
-  .jspsych-content{max-width:660px;}
-  .speaker-wrap{display:flex; flex-direction:column; align-items:center; gap:18px;}
-  .speaker{width:96px; height:96px; border-radius:50%; background:#eaf1f8; display:flex; align-items:center; justify-content:center;}
-  .speaker svg{width:46px; height:46px; fill:#3b6ea5;}
+  :root{--ink:#1f2430;--muted:#6b7280;--line:#e3e6ec;--bg:#f7f8fa;--card:#fff;
+    --accent:#3b6ea5;--accent-bg:#eaf1f8;--danger:#a3352d;--ok:#2f6d4f;}
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;line-height:1.6;}
+  .jspsych-content{max-width:640px;}
+  .instr{text-align:left;line-height:1.75;}
+  .instr h2{color:var(--accent);text-align:center;}
+  .instr ul{padding-left:20px;} .instr li{margin-bottom:12px;}
+  .qtext{font-size:20px;font-weight:600;margin-bottom:26px;text-align:center;}
+  .jspsych-btn{font-size:19px !important;padding:16px 40px !important;margin:0 10px !important;
+    border-radius:12px !important;border:1px solid #d4dae2 !important;background:#fff !important;min-width:140px;}
+  .jspsych-btn:hover{background:#f0f5fa !important;border-color:var(--accent) !important;}
+  .speaker{width:92px;height:92px;border-radius:50%;background:var(--accent-bg);
+    display:flex;align-items:center;justify-content:center;margin:0 auto 16px;}
+  .speaker svg{width:44px;height:44px;fill:var(--accent);}
   .playing .speaker{animation:pulse 1s ease-in-out infinite;}
   @keyframes pulse{0%,100%{transform:scale(1);opacity:1;}50%{transform:scale(1.08);opacity:.75;}}
-  .listen-label{color:#6b7280; font-size:15px;}
-  .jspsych-btn{font-size:20px !important; padding:18px 48px !important; margin:0 12px !important;
-    border-radius:12px !important; border:1px solid #d4dae2 !important; background:#fff !important; min-width:150px;}
-  .jspsych-btn:hover{background:#f0f5fa !important; border-color:#3b6ea5 !important;}
-  .qtext{font-size:20px; font-weight:600; margin-bottom:28px; text-align:center;}
-  .break-box{text-align:center;}
-  .break-box h2{color:#3b6ea5;}
-  .progress{color:#6b7280; font-size:14px; margin-top:20px;}
-  #devlog{position:fixed; bottom:0; left:0; right:0; background:#1f2430; color:#9fe6c0;
-    font-family:monospace; font-size:12px; padding:8px 14px; max-height:150px; overflow-y:auto; opacity:.94;}
-  #devlog b{color:#ffd479;} #devlog .warn{color:#ff8a80;}
+  .listen-label{color:var(--muted);font-size:15px;}
+  /* 설문 폼 */
+  .survey{text-align:left;max-width:560px;margin:0 auto;}
+  .q{margin-bottom:24px;}
+  .q > label.qlabel{display:block;font-weight:600;margin-bottom:8px;}
+  .hint{font-size:13px;color:var(--muted);margin:6px 0 0;}
+  .opts{display:flex;gap:8px;flex-wrap:wrap;}
+  .opt{padding:10px 16px;border:1px solid var(--line);border-radius:9px;background:#fff;
+    cursor:pointer;font-size:15px;transition:all .12s;user-select:none;}
+  .opt:hover{border-color:#c3ccd8;background:#fafbfc;}
+  .opt.sel{background:var(--accent-bg);border-color:var(--accent);color:var(--accent);font-weight:600;}
+  .survey input[type=text],.survey input[type=number]{font:inherit;padding:9px 12px;
+    border:1px solid var(--line);border-radius:8px;background:#fff;width:100%;max-width:320px;}
+  .survey input[type=number]{max-width:150px;}
+  .subfield{margin-top:12px;padding-left:14px;border-left:2px solid var(--accent);}
+  .subfield .row{margin-bottom:10px;}
+  .subfield label{display:block;font-size:14px;color:var(--muted);margin-bottom:4px;}
+  .inline{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+  .checkline{display:flex;align-items:center;gap:7px;font-size:14px;color:var(--muted);cursor:pointer;}
+  .checkline input{width:auto;}
+  .consent-body{font-size:14.5px;max-height:320px;overflow-y:auto;border:1px solid var(--line);
+    border-radius:10px;padding:16px 18px;background:#fcfcfd;margin-bottom:16px;text-align:left;}
+  .err{color:var(--danger);font-size:14px;margin-top:12px;min-height:1px;}
+  .hidden{display:none;}
+  .code-box{font-family:ui-monospace,monospace;font-size:26px;font-weight:700;letter-spacing:2px;
+    background:var(--accent-bg);color:var(--accent);padding:16px 24px;border-radius:10px;text-align:center;margin:18px 0;}
+  .progress-bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin-top:20px;}
+  .progress-bar > div{height:100%;background:var(--accent);transition:width .3s;}
+  #savelog{position:fixed;bottom:6px;right:8px;font-size:11px;color:#aaa;font-family:monospace;}
 </style>
 </head>
 <body>
-<div id="devlog"><b>[dev log]</b> 초기화 중…</div>
+<div id="savelog"></div>
 
 <script>
 // ============================================================
-// 2단계: 랜덤화 + 블록/휴식
+// Davino/Gavino 지각 실험 — 전체 조립본
+// 흐름: 모바일안내 → 동의 → 설문 → 자격판정 → 헤드폰체크
+//       → 지시문 → 연습 → 본실험(740, 블록4+휴식3) → 완료코드
 // ============================================================
 
-// ▼▼▼ 테스트 스위치 ▼▼▼
-// true  = 짧게 (각 블록에서 소수만) — 흐름 빠르게 확인용
-// false = 실제 740개 전부
-const QUICK_TEST = true;
-const QUICK_PER_BLOCK = 6;   // QUICK_TEST 시 블록당 trial 수
-// ▲▲▲
+// ---------- 설정 ----------
+const SUPABASE_URL = "https://lehqkjvfiuscyccgvgzt.supabase.co";
+const SUPABASE_KEY = "sb_publishable_kyfj7vsKTMnvyq-zFvHM0A_O3tEAH9f";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const AUDIO_BASE = "audio/";
-const N_BLOCKS = 4;
+const HP_BASE    = "hp_audio/";
+const N_BLOCKS   = 4;
+const MIN_LAG    = 10;      // 동일 음원 최소 간격
+const HP_PASS    = 5;       // 헤드폰 체크 통과 기준 (6문제 중)
+const HP_MAX_ATTEMPTS = 2;
+const SAVE_BATCH = 20;      // N trial마다 저장
 
-function log(m){const el=document.getElementById('devlog'); el.innerHTML+="<br>"+m; el.scrollTop=el.scrollHeight;}
+// ▼ 테스트 스위치: true=짧게(블록당 소수), false=740 전체
+const QUICK_TEST = true;
+const QUICK_PER_BLOCK = 5;
+
+// 연습 자극 (huge Intact step1 / rich Replaced step7 / distractor 1개)
+const PRACTICE = [
+  {audio:"huge_1_vino.wav", question:"Who is huge?", opt1:"Davino", opt2:"Gavino", correct:null},
+  {audio:"ri_stp7_vino.wav", question:"Who is rich?", opt1:"Davino", opt2:"Gavino", correct:null},
+  {audio:"distractor_001.mp3", question:"How was the weather?", opt1:"Bad", opt2:"Nice", correct:"Nice"},
+];
+
+// ---------- 상태 ----------
+const sessionId = crypto.randomUUID();
+const A = {};                    // 설문 답변
+let participantCode = "";
+let subjectSaved = false;
+const SPEAKER_SVG = '<svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>';
+
+function makeCode(){const c="ABCDEFGHJKMNPQRSTUVWXYZ23456789";let s="";for(let i=0;i<6;i++)s+=c[Math.floor(Math.random()*c.length)];return "DG-"+s;}
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function randInterval(){return Math.floor(Math.random()*3)+1;}
+function slog(m){document.getElementById('savelog').textContent=m;}
 
 // ============================================================
-// 랜덤화 (앞서 검증한 알고리즘)
-//   1) target 섞되 동일 음원 최소 MIN_LAG 간격 유지
-//   2) 180개 구간으로 나눠 각 구간 끝에 distractor 1개 삽입
-//      → distractor 연속 배치 불가, 4~5 trial 간격 균등
+// 저장 — 배치 전송 + 실패 시 재시도 + 로컬 백업
 // ============================================================
-const MIN_LAG = 10;
+let responseBuffer = [];
+let savedCount = 0;
 
-function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]];} return a; }
-
-function buildSequence(stimuli){
-  const targets = stimuli.filter(s=>s.type==='Target');
-  const distr   = stimuli.filter(s=>s.type==='Distractor');
-
-  // 1) target 섞기 (동일 음원 최소 간격)
-  let ordered=null;
-  for(let attempt=0; attempt<300 && !ordered; attempt++){
-    let pool = shuffle(targets);
-    let out=[], recent=[], ok=true;
-    while(pool.length){
-      let idx = pool.findIndex(x => !recent.includes(x.audio_file));
-      if(idx<0){ ok=false; break; }
-      out.push(pool.splice(idx,1)[0]);
-      recent.push(out[out.length-1].audio_file);
-      if(recent.length>MIN_LAG) recent.shift();
-    }
-    if(ok) ordered=out;
+async function flushResponses(force){
+  if(responseBuffer.length===0) return;
+  if(!force && responseBuffer.length < SAVE_BATCH) return;
+  const batch = responseBuffer.splice(0, responseBuffer.length);
+  let ok=false;
+  for(let attempt=1; attempt<=3 && !ok; attempt++){
+    try{
+      const {error} = await sb.from('responses').insert(batch);
+      if(!error){ ok=true; savedCount+=batch.length; slog(`saved ${savedCount}`); }
+      else throw error;
+    }catch(e){ await new Promise(r=>setTimeout(r, 800*attempt)); }
   }
-  if(!ordered){ log("<span class='warn'>랜덤화 재시도 실패 — MIN_LAG 완화 필요</span>"); ordered=shuffle(targets); }
-
-  // 2) distractor 균등 삽입
-  const d = shuffle(distr);
-  const nSeg = d.length;
-  const base = Math.floor(ordered.length / nSeg);
-  const extra = ordered.length % nSeg;
-  const sizes = Array(nSeg).fill(base);
-  shuffle([...Array(nSeg).keys()]).slice(0,extra).forEach(i=>sizes[i]++);
-
-  let seq=[], k=0;
-  for(let i=0;i<nSeg;i++){
-    seq = seq.concat(ordered.slice(k, k+sizes[i]));
-    seq.push(d[i]);
-    k += sizes[i];
+  if(!ok){
+    // 로컬 백업 (마지막 안전망)
+    try{ const bak=JSON.parse(localStorage.getItem('dg_backup')||'[]'); bak.push(...batch);
+      localStorage.setItem('dg_backup', JSON.stringify(bak)); slog('saved locally (offline)'); }
+    catch(e){ responseBuffer.unshift(...batch); }  // 그래도 안되면 버퍼에 되돌림
   }
-  return seq;
 }
 
-// 시퀀스를 블록으로 분할
-function splitBlocks(seq, n){
-  const per = Math.ceil(seq.length/n);
-  const blocks=[];
-  for(let i=0;i<n;i++) blocks.push(seq.slice(i*per,(i+1)*per));
-  return blocks;
+function queueResponse(row){ responseBuffer.push(row); flushResponses(false); }
+
+// ============================================================
+// 랜덤화 (검증 완료된 알고리즘)
+// ============================================================
+function buildSequence(stimuli){
+  const targets=stimuli.filter(s=>s.type==='Target'), distr=stimuli.filter(s=>s.type==='Distractor');
+  let ordered=null;
+  for(let att=0;att<300&&!ordered;att++){
+    let pool=shuffle(targets),out=[],recent=[],ok=true;
+    while(pool.length){
+      let idx=pool.findIndex(x=>!recent.includes(x.audio_file));
+      if(idx<0){ok=false;break;}
+      out.push(pool.splice(idx,1)[0]);recent.push(out[out.length-1].audio_file);
+      if(recent.length>MIN_LAG)recent.shift();
+    }
+    if(ok)ordered=out;
+  }
+  if(!ordered)ordered=shuffle(targets);
+  const d=shuffle(distr),nSeg=d.length,base=Math.floor(ordered.length/nSeg),extra=ordered.length%nSeg;
+  const sizes=Array(nSeg).fill(base);
+  shuffle([...Array(nSeg).keys()]).slice(0,extra).forEach(i=>sizes[i]++);
+  let seq=[],k=0;
+  for(let i=0;i<nSeg;i++){seq=seq.concat(ordered.slice(k,k+sizes[i]));seq.push(d[i]);k+=sizes[i];}
+  return seq;
+}
+function splitBlocks(seq,n){const per=Math.ceil(seq.length/n);const b=[];for(let i=0;i<n;i++)b.push(seq.slice(i*per,(i+1)*per));return b;}
+
+// ============================================================
+// 설문 HTML (jsPsych html-button-response 안에 넣음)
+// ============================================================
+const surveyHTML = `<div class="survey">
+  <h2 style="text-align:center;color:var(--accent)">Participant background survey</h2>
+  <div class="q"><label class="qlabel">1. What is your first language (L1)?</label>
+    <div class="opts"><div class="opt" data-q="l1" data-v="Korean">Korean</div><div class="opt" data-q="l1" data-v="English">English</div></div></div>
+  <div class="q"><label class="qlabel">Age</label><input type="number" id="age" min="10" max="99" placeholder="e.g. 26"></div>
+  <div class="q"><label class="qlabel">Gender</label>
+    <div class="opts"><div class="opt" data-q="gender" data-v="Male">Male</div><div class="opt" data-q="gender" data-v="Female">Female</div></div></div>
+  <div class="q"><label class="qlabel">2. Do you have any history of hearing impairment?</label>
+    <div class="opts"><div class="opt" data-q="hearing" data-v="No">No</div><div class="opt" data-q="hearing" data-v="Yes">Yes</div></div></div>
+  <div class="q"><label class="qlabel">Have you received formal musical training (e.g., playing an instrument) for more than 3 years?</label>
+    <div class="opts"><div class="opt" data-q="music" data-v="No">No</div><div class="opt" data-q="music" data-v="Yes">Yes</div></div>
+    <div id="music-sub" class="subfield hidden"><label>Total years of training</label><input type="number" id="musicYears" min="0" step="0.5" placeholder="e.g. 5"></div></div>
+  <div id="korean-block" class="hidden"><div style="border-top:1px solid var(--line);padding-top:18px;">
+    <div class="q"><label class="qlabel">3. What is your highest official TOEIC score?</label>
+      <div class="inline"><input type="number" id="toeic" min="0" max="990" placeholder="e.g. 920">
+        <label class="checkline"><input type="checkbox" id="toeicNone"> Never taken</label></div></div>
+    <div class="q"><label class="qlabel">4. Have you ever lived in an English-speaking country (US, UK, Canada, Australia, etc.) for more than 6 months?</label>
+      <div class="opts"><div class="opt" data-q="abroad" data-v="No">No</div><div class="opt" data-q="abroad" data-v="Yes">Yes</div></div>
+      <div id="abroad-sub" class="subfield hidden">
+        <div class="row"><label>Country</label><input type="text" id="abroadCountry" placeholder="e.g. Canada"></div>
+        <div class="row"><label>Duration of stay</label><div class="inline"><input type="number" id="abroadMonths" min="0" placeholder="e.g. 8"><span style="color:var(--muted);font-size:14px">months</span></div></div></div>
+      <p class="hint">For research records only — does not affect eligibility.</p></div>
+  </div></div>
+  <div id="english-block" class="hidden"><div style="border-top:1px solid var(--line);padding-top:18px;">
+    <div class="q"><label class="qlabel">3. What is your country of origin / citizenship?</label><input type="text" id="origin" placeholder="e.g. United States"></div>
+    <div class="q"><label class="qlabel">4. How long have you been living in Korea?</label>
+      <div class="inline"><input type="number" id="koreaDur" min="0" placeholder="e.g. 14">
+        <div class="opts"><div class="opt" data-q="koreaUnit" data-v="months">months</div><div class="opt" data-q="koreaUnit" data-v="years">years</div></div></div></div>
+    <div class="q"><label class="qlabel">5. Do you speak any languages other than English?</label>
+      <div class="opts"><div class="opt" data-q="otherlangs" data-v="No">No</div><div class="opt" data-q="otherlangs" data-v="Yes">Yes</div></div>
+      <div id="langs-sub" class="subfield hidden"><label>Language(s)</label><input type="text" id="otherLangsText" placeholder="e.g. Spanish, Mandarin"></div></div>
+  </div></div>
+  <div class="err" id="surveyErr"></div>
+</div>`;
+
+// 설문 화면 로드 후 이벤트 바인딩
+function bindSurvey(){
+  document.querySelectorAll('.opt[data-q]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const q=el.dataset.q;
+      document.querySelectorAll('.opt[data-q="'+q+'"]').forEach(b=>b.classList.remove('sel'));
+      el.classList.add('sel'); A[q]=el.dataset.v;
+      if(q==='l1'){
+        document.getElementById('korean-block').classList.toggle('hidden',A.l1!=='Korean');
+        document.getElementById('english-block').classList.toggle('hidden',A.l1!=='English');
+      }
+      if(q==='music')document.getElementById('music-sub').classList.toggle('hidden',A.music!=='Yes');
+      if(q==='abroad')document.getElementById('abroad-sub').classList.toggle('hidden',A.abroad!=='Yes');
+      if(q==='otherlangs')document.getElementById('langs-sub').classList.toggle('hidden',A.otherlangs!=='Yes');
+    });
+  });
+  const tn=document.getElementById('toeicNone');
+  if(tn)tn.addEventListener('change',()=>{const t=document.getElementById('toeic');t.disabled=tn.checked;if(tn.checked)t.value='';});
+}
+
+// 설문 검증 + 판정 + 저장. 반환: {ok, eligible, reason}
+async function processSurvey(){
+  const err=document.getElementById('surveyErr'); err.textContent="";
+  const ageV=document.getElementById('age').value;
+  const age=parseInt(ageV,10);
+  if(!A.l1)return{ok:false,msg:"Please answer question 1 (first language)."};
+  if(!ageV)return{ok:false,msg:"Please enter your age."};
+  if(!A.gender)return{ok:false,msg:"Please select your gender."};
+  if(!A.hearing)return{ok:false,msg:"Please answer question 2 (hearing)."};
+  if(!A.music)return{ok:false,msg:"Please answer the musical training question."};
+  if(A.l1==='Korean'){
+    const none=document.getElementById('toeicNone').checked;
+    if(!none&&!document.getElementById('toeic').value)return{ok:false,msg:"Please enter your TOEIC score, or check 'Never taken'."};
+    if(!A.abroad)return{ok:false,msg:"Please answer question 4 (living abroad)."};
+  }
+  if(A.l1==='English'){
+    if(!document.getElementById('origin').value.trim())return{ok:false,msg:"Please enter your country of origin."};
+    if(!document.getElementById('koreaDur').value||!A.koreaUnit)return{ok:false,msg:"Please answer question 4 (time in Korea)."};
+    if(!A.otherlangs)return{ok:false,msg:"Please answer question 5 (other languages)."};
+  }
+  // 판정
+  let reason=null;
+  if(A.hearing==='Yes')reason='hearing';
+  else if(isNaN(age)||age<20||age>39)reason='age';
+  else if(A.l1==='Korean'){
+    const none=document.getElementById('toeicNone').checked;
+    const toeic=parseInt(document.getElementById('toeic').value,10);
+    if(none)reason='no_toeic'; else if(toeic<900)reason='toeic';
+  }
+  const eligible=(reason===null);
+  let koreaMonths=null;
+  if(A.l1==='English'){const d=parseFloat(document.getElementById('koreaDur').value);koreaMonths=(A.koreaUnit==='years')?d*12:d;}
+  participantCode=makeCode();
+  const row={
+    session_id:sessionId, participant_id:participantCode, consent:true,
+    age:age, gender:A.gender, l1:A.l1,
+    hearing_impair:A.hearing==='Yes', music_training:A.music==='Yes',
+    music_years:A.music==='Yes'?parseFloat(document.getElementById('musicYears').value)||null:null,
+    toeic_score:(A.l1==='Korean'&&!document.getElementById('toeicNone').checked)?parseInt(document.getElementById('toeic').value,10):null,
+    toeic_none:A.l1==='Korean'?document.getElementById('toeicNone').checked:null,
+    lived_abroad:A.l1==='Korean'?(A.abroad==='Yes'):null,
+    abroad_country:A.abroad==='Yes'?document.getElementById('abroadCountry').value.trim()||null:null,
+    abroad_months:A.abroad==='Yes'?parseFloat(document.getElementById('abroadMonths').value)||null:null,
+    origin_country:A.l1==='English'?document.getElementById('origin').value.trim():null,
+    korea_months:koreaMonths,
+    other_langs:A.l1==='English'?(A.otherlangs==='Yes'):null,
+    other_langs_text:A.otherlangs==='Yes'?document.getElementById('otherLangsText').value.trim()||null:null,
+    eligible:eligible, exclusion_reason:reason,
+    user_agent:navigator.userAgent, screen_w:screen.width, screen_h:screen.height
+  };
+  try{ await sb.from('subjects').insert(row); subjectSaved=true; }
+  catch(e){ return{ok:false,msg:"Could not save. Check your connection and try again."}; }
+  return{ok:true, eligible, reason};
+}
+
+// ============================================================
+// 헤드폰 체크 블록 생성
+// ============================================================
+const HP_SET_NAMES=["HugginsPitch_set1_","HugginsPitch_set2_","HugginsPitch_set3_","HugginsPitch_set4_","HugginsPitch_set5_","HugginsPitch_set6_"];
+function makeHPBlock(attemptNum, scoreObj){
+  const tl=[];
+  const sets=shuffle(HP_SET_NAMES).map(name=>({file:name,answer:randInterval()}));
+  sets.forEach((s,i)=>{
+    tl.push({type:jsPsychAudioButtonResponse, stimulus:HP_BASE+s.file+s.answer+".wav",
+      prompt:`<div class="playing"><div class="speaker">${SPEAKER_SVG}</div>
+        <div class="qtext">문제 ${i+1} / 6 · Question ${i+1} of 6</div>
+        <p style="color:var(--muted)">잡음이 <b>3번</b> 연달아 재생됩니다. 어느 것에 삐— 소리가 숨어 있는지 집중하세요.<br>Listen for the faint tone across the <b>three</b> noises…</p></div>`,
+      choices:[], trial_ends_after_audio:true, response_allowed_while_playing:false});
+    tl.push({type:jsPsychHtmlButtonResponse,
+      stimulus:`<div class="qtext">삐— 소리가 숨어 있던 잡음은 몇 번째였나요?</div><p style="color:var(--muted)">Which noise had the faint tone hidden inside — 1st, 2nd, or 3rd?</p>`,
+      choices:["첫 번째<br><span style='font-size:13px;color:#6b7280'>1st</span>","두 번째<br><span style='font-size:13px;color:#6b7280'>2nd</span>","세 번째<br><span style='font-size:13px;color:#6b7280'>3rd</span>"],
+      on_finish:(d)=>{ if((d.response+1)===s.answer)scoreObj.correct++; }});
+  });
+  return tl;
 }
 
 // ============================================================
 // 메인
 // ============================================================
 async function main(){
-  const stimuli = await fetch('stimuli.json').then(r=>r.json());
-  log(`stimuli 로드: ${stimuli.length}개`);
+  const isMobile=/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)||window.matchMedia('(max-width:820px)').matches;
 
-  let seq = buildSequence(stimuli);
-
-  // --- 랜덤화 자기검증 ---
-  const distIdx = seq.map((s,i)=>s.type==='Distractor'?i:-1).filter(i=>i>=0);
-  const gaps = distIdx.slice(1).map((v,i)=>v-distIdx[i]);
-  const adjacentDist = gaps.some(g=>g===1);
-  let minLag=999, seen={};
-  seq.forEach((s,i)=>{ if(s.type==='Target'){ if(s.audio_file in seen) minLag=Math.min(minLag,i-seen[s.audio_file]); seen[s.audio_file]=i; }});
-  log(`<b>랜덤화 검증</b> — distractor 연속: ${adjacentDist?"<span class='warn'>있음(문제)</span>":"없음 ✓"} | 간격 ${Math.min(...gaps)}~${Math.max(...gaps)} | 동일음원 최소간격 ${minLag}`);
-
-  let blocks = splitBlocks(seq, N_BLOCKS);
-  log(`블록 분할: ${blocks.map(b=>b.length).join(' / ')}`);
-
-  // QUICK_TEST: 각 블록 앞부분만
-  if(QUICK_TEST){
-    blocks = blocks.map(b=>b.slice(0,QUICK_PER_BLOCK));
-    log(`<b>QUICK_TEST 켜짐</b> — 블록당 ${QUICK_PER_BLOCK}개만 (${blocks.flat().length} trials)`);
-  }
-
-  // preload 대상 음원
-  const allAudio = [...new Set(blocks.flat().map(s=>AUDIO_BASE+s.audio_file))];
-
-  const jsPsych = initJsPsych({
-    on_finish: ()=>{
-      log("<b>=== 종료. 블록별 기록 요약 ===</b>");
-      const data = jsPsych.data.get().filter({phase:'main'});
-      [1,2,3,4].forEach(b=>{
-        const bd = data.filter({block:b});
-        if(bd.count()) log(`블록${b}: ${bd.count()} trials 기록됨`);
-      });
-    }
+  const jsPsych=initJsPsych({
+    on_finish: async ()=>{ await flushResponses(true); }
   });
-
   const timeline=[];
 
-  timeline.push({ type:jsPsychPreload, audio:allAudio,
-    message:"<p style='color:#6b7280'>Loading sounds…</p>",
-    on_error:f=>log("<span class='warn'>preload 실패: "+f+"</span>") });
+  // --- 0. 모바일 안내 (막고 종료) ---
+  if(isMobile){
+    timeline.push({type:jsPsychHtmlButtonResponse,
+      stimulus:`<div class="instr"><h2>Please use a computer</h2>
+        <p>This experiment requires careful listening and cannot be done on a phone or tablet.</p>
+        <p>Please open this link on a <b>desktop or laptop</b> with headphones, in a quiet room.</p></div>`,
+      choices:[]});
+    jsPsych.run(timeline); return;
+  }
 
-  timeline.push({ type:jsPsychHtmlButtonResponse,
-    stimulus:"<div class='qtext'>2단계 테스트</div><p style='color:#6b7280'>랜덤화된 순서로 블록과 휴식이 진행됩니다.<br>각 trial: 스피커 → 소리 1회 → 선택지.</p>",
-    choices:["시작"] });
+  // --- preload: 헤드폰 검사음 전체 + 실험 음원 ---
+  const stimuli = await fetch('stimuli.json').then(r=>r.json());
+  let seq = buildSequence(stimuli);
+  let blocks = splitBlocks(seq, N_BLOCKS);
+  if(QUICK_TEST) blocks = blocks.map(b=>b.slice(0,QUICK_PER_BLOCK));
 
-  let globalIdx=0;
-  const totalTrials = blocks.flat().length;
+  const hpAudio=[]; HP_SET_NAMES.forEach(n=>{for(let v=1;v<=3;v++)hpAudio.push(HP_BASE+n+v+".wav");});
+  hpAudio.push(HP_BASE+"HugginsPitch_calibration.wav");
+  const mainAudio=[...new Set(blocks.flat().map(s=>AUDIO_BASE+s.audio_file))];
+  const practiceAudio=PRACTICE.map(p=>AUDIO_BASE+p.audio);
 
-  blocks.forEach((block, bi)=>{
+  timeline.push({type:jsPsychPreload, audio:[...hpAudio, ...practiceAudio, ...mainAudio],
+    message:"<p style='color:#6b7280'>Loading… 잠시만 기다려 주세요.</p>", max_load_time:60000,
+    error_message:"<p>일부 파일을 불러오지 못했습니다. 새로고침 해주세요.<br>Some files failed to load. Please refresh.</p>"});
+
+  // --- 1. 동의서 ---
+  timeline.push({type:jsPsychHtmlButtonResponse,
+    stimulus:`<div><h2 style="text-align:center;color:var(--accent)">Speech Perception Experiment</h2>
+      <div class="consent-body">
+        <p><em>[ IRB 승인 동의서 전문을 여기에 넣으세요. 아래는 자리표시용입니다. ]</em></p>
+        <p>You are invited to take part in a research study on speech perception. Participation is voluntary; you may stop anytime without penalty. The study takes about 40–60 minutes and involves listening to short audio clips and choosing between two options.</p>
+        <p>Your responses are recorded anonymously. No personally identifying information is collected.</p>
+      </div>
+      <p style="text-align:center">By clicking below, you confirm that you have read and understood the above and agree to participate.</p></div>`,
+    choices:["I agree — continue"]});
+
+  // --- 2. 설문 (검증 실패 시 같은 화면 유지) ---
+  const surveyNode={type:jsPsychHtmlButtonResponse, stimulus:surveyHTML, choices:["Submit"],
+    on_load:bindSurvey,
+    on_finish:async(data)=>{
+      const res=await processSurvey();
+      data.survey_ok=res.ok; data.eligible=res.eligible; data.reason=res.reason; data.msg=res.msg;
+    }};
+  const surveyLoop={timeline:[surveyNode],
+    loop_function:(d)=>{ const last=d.values()[d.values().length-1];
+      if(!last.survey_ok){ setTimeout(()=>{const e=document.getElementById('surveyErr');if(e)e.textContent=last.msg;},50); return true; }
+      return false; }};
+  timeline.push(surveyLoop);
+
+  // --- 3. 자격 미달 종료 (조건부) ---
+  let excluded=false;
+  timeline.push({timeline:[{type:jsPsychHtmlButtonResponse,
+    stimulus:`<div class="instr"><h2>Thank you for your interest</h2>
+      <p>Based on your responses, you do not meet the participation criteria for this study.</p>
+      <p style="color:var(--muted)">You may now close this window. We appreciate your time.</p></div>`,
+    choices:[]}],
+    conditional_function:()=>{ const d=jsPsych.data.get().filter({trial_type:'html-button-response'}).values();
+      const s=d.reverse().find(x=>x.eligible!==undefined); excluded=(s && s.eligible===false); return excluded; }});
+
+  // 이후 노드는 자격 통과자만 (excluded면 실험 종료 상태)
+  const notExcluded=()=>!excluded;
+
+  // --- 4. 헤드폰 체크 (재시도 1회) ---
+  const hp1={correct:0}, hp2={correct:0};
+  let hpPass=false;
+
+  timeline.push({timeline:[{type:jsPsychHtmlButtonResponse,
+    stimulus:`<div class="instr"><h2>헤드폰 확인 / Headphone check</h2>
+      <p>이 실험은 반드시 <b>헤드폰이나 이어폰</b>을 착용해야 합니다. / You must wear <b>headphones</b>.</p>
+      <p>다음 6개 문제에서, 잡음(쉬이익)이 <b>3번</b> 연달아 재생됩니다. 셋 다 크기는 같지만 <b>하나에만</b> 희미한 삐— 소리가 숨어 있습니다. 그게 몇 번째인지 고르세요.<br>
+      <span style="color:var(--muted)">You'll hear noise 3 times; all same loudness, but only one hides a faint tone. Pick which one.</span></p>
+      <p style="color:var(--muted)">먼저 조절음으로 볼륨을 편안하게 맞추세요. / First set a comfortable volume with the calibration sound.</p></div>`,
+    choices:["시작 / Start"]}], conditional_function:notExcluded});
+
+  timeline.push({type:jsPsychAudioButtonResponse, stimulus:HP_BASE+"HugginsPitch_calibration.wav",
+    prompt:`<div class="playing"><div class="speaker">${SPEAKER_SVG}</div><p>볼륨을 맞춘 뒤 계속하세요. / Adjust volume, then continue.</p></div>`,
+    choices:["계속 / Continue"], response_allowed_while_playing:true,
+    conditional_function:notExcluded} );
+
+  // 시도 1
+  timeline.push({timeline:makeHPBlock(1,hp1), conditional_function:notExcluded});
+  // 시도 1 판정
+  timeline.push({timeline:[{type:jsPsychHtmlButtonResponse,
+    stimulus:()=>{ hpPass=(hp1.correct>=HP_PASS);
+      return hpPass?`<div class="instr"><h2>✓ 통과 / Passed</h2><p>확인되었습니다 (${hp1.correct}/6).</p></div>`
+        :`<div class="instr"><h2>한 번 더 / One more try</h2><p>헤드폰 사용을 확인하지 못했습니다 (${hp1.correct}/6). 양쪽 귀에 제대로 착용했는지, 볼륨과 주변 소음을 확인하고 다시 시도하세요.<br><span style="color:var(--muted)">Please check your headphones and try once more.</span></p></div>`; },
+    choices:()=>hpPass?["계속 / Continue"]:["다시 시도 / Try again"]}],
+    conditional_function:notExcluded});
+  // 시도 2 (시도1 실패 시만)
+  timeline.push({timeline:makeHPBlock(2,hp2), conditional_function:()=>notExcluded()&&!hpPass});
+  // 최종 헤드폰 판정
+  let hpFinalPass=false;
+  timeline.push({timeline:[{type:jsPsychHtmlButtonResponse,
+    stimulus:()=>{ hpFinalPass=hpPass||(hp2.correct>=HP_PASS);
+      return hpFinalPass?`<div class="instr"><h2>✓ 준비 완료 / Ready</h2><p>실험으로 넘어갑니다. / Proceeding to the experiment.</p></div>`
+        :`<div class="instr"><h2>계속할 수 없습니다 / Unable to continue</h2><p>헤드폰 사용을 확인하지 못했습니다. 이 연구는 헤드폰이 필요합니다.<br><span style="color:var(--muted)">Could not confirm headphone use. Thank you for your time.</span></p></div>`; },
+    choices:()=>hpFinalPass?["계속 / Continue"]:["닫기 / Close"]}],
+    conditional_function:notExcluded});
+
+  const canProceed=()=>notExcluded()&&hpFinalPass;
+
+  // --- 5~8: 지시 → 연습 → 본실험 → 완료 를 하나의 conditional timeline으로 묶음 ---
+  const mainTimeline=[];
+
+  // 5. 지시문
+  mainTimeline.push({type:jsPsychHtmlButtonResponse,
+    stimulus:`<div class="instr"><h2>Instructions</h2><ul>
+      <li><b>Environment.</b> Wear headphones and stay in a quiet room.</li>
+      <li><b>Volume.</b> Set a comfortable level now. Do not change it once the session starts.</li>
+      <li><b>Audio.</b> Each clip plays <b>only once</b>. You cannot replay or pause it.</li>
+      <li><b>Response.</b> Respond as quickly as possible based on your first impression. There are no right or wrong answers.</li>
+      <li><b>Duration &amp; breaks.</b> About 740 trials (40–60 min), with three short self-paced breaks.</li>
+      </ul><p style="text-align:center">First, a few practice trials.</p></div>`,
+    choices:["Start practice"]});
+
+  // 6. 연습 (저장 안 함)
+  PRACTICE.forEach((p,pi)=>{
+    const swap=Math.random()<0.5; const left=swap?p.opt2:p.opt1, right=swap?p.opt1:p.opt2;
+    mainTimeline.push(
+      {type:jsPsychAudioButtonResponse, stimulus:AUDIO_BASE+p.audio,
+        prompt:`<div class="playing"><div class="speaker">${SPEAKER_SVG}</div><div class="listen-label">Practice ${pi+1}/${PRACTICE.length} · Listen…</div></div>`,
+        choices:[], trial_ends_after_audio:true, response_allowed_while_playing:false},
+      {type:jsPsychHtmlButtonResponse, stimulus:`<div class="qtext">${p.question}</div>`, choices:[left,right]}
+    );
+  });
+  mainTimeline.push({type:jsPsychHtmlButtonResponse,
+    stimulus:`<div class="instr"><h2>Practice complete</h2><p>The real experiment begins now. Remember: each sound plays once, respond on first impression.</p></div>`,
+    choices:["Begin the experiment"]});
+
+  // 7. 본 실험
+  const totalTrials=blocks.flat().length;
+  let gIdx=0;
+  blocks.forEach((block,bi)=>{
     block.forEach(stim=>{
-      globalIdx++;
-      const swap = Math.random()<0.5;
-      const left  = swap? stim.opt2 : stim.opt1;
-      const right = swap? stim.opt1 : stim.opt2;
-      const gi = globalIdx;
-
-      // (A) 스피커 + 재생
-      timeline.push({
-        type:jsPsychAudioButtonResponse,
-        stimulus:AUDIO_BASE+stim.audio_file,
-        prompt:`<div class="speaker-wrap playing"><div class="speaker"><svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg></div><div class="listen-label">Listen…</div></div>`,
-        choices:[], trial_ends_after_audio:true, response_allowed_while_playing:false
-      });
-
-      // (B) 질문 + 선택지
-      timeline.push({
-        type:jsPsychHtmlButtonResponse,
-        stimulus:`<div class="qtext">${stim.question}</div>`,
-        choices:[left,right],
-        data:{
-          phase:'main', block:bi+1, trial_index:gi,
-          item_id:stim.item_id, type:stim.type, context_type:stim.context_type,
-          context_word:stim.context_word, place:stim.place, voicing:stim.voicing,
-          step:stim.step, repetition:stim.repetition, audio_file:stim.audio_file,
-          option_left:left, option_right:right, correct_answer:stim.correct
-        },
-        on_finish:(d)=>{
-          d.response_word = (d.response===0)? left : right;
-          d.is_correct = (stim.correct===null)? null : (d.response_word===stim.correct);
-          if(gi<=3 || gi%50===0) log(`trial ${gi}/${totalTrials} [B${bi+1}] ${stim.type} ${stim.audio_file} → ${d.response_word} (${d.rt}ms)`);
-        }
-      });
+      gIdx++; const gi=gIdx;
+      const swap=Math.random()<0.5; const left=swap?stim.opt2:stim.opt1, right=swap?stim.opt1:stim.opt2;
+      mainTimeline.push(
+        {type:jsPsychAudioButtonResponse, stimulus:AUDIO_BASE+stim.audio_file,
+          prompt:`<div class="playing"><div class="speaker">${SPEAKER_SVG}</div><div class="listen-label">Listen…</div></div>`,
+          choices:[], trial_ends_after_audio:true, response_allowed_while_playing:false},
+        {type:jsPsychHtmlButtonResponse, stimulus:`<div class="qtext">${stim.question}</div>`, choices:[left,right],
+          on_finish:(d)=>{
+            const word=(d.response===0)?left:right;
+            queueResponse({ session_id:sessionId, trial_index:gi, block:bi+1,
+              item_id:stim.item_id, type:stim.type, context_type:stim.context_type,
+              context_word:stim.context_word, place:stim.place, voicing:stim.voicing,
+              step:stim.step, repetition:stim.repetition, audio_file:stim.audio_file,
+              option_left:left, option_right:right, response:word,
+              correct_answer:stim.correct, is_correct:(stim.correct===null)?null:(word===stim.correct), rt:d.rt });
+          }}
+      );
     });
-
-    // 블록 사이 휴식 (마지막 블록 뒤엔 없음)
-    if(bi < blocks.length-1){
-      timeline.push({
-        type:jsPsychHtmlButtonResponse,
-        stimulus:()=>`<div class="break-box"><h2>Break ${bi+1} of ${N_BLOCKS-1}</h2>
+    if(bi<blocks.length-1){
+      mainTimeline.push({type:jsPsychHtmlButtonResponse,
+        stimulus:()=>`<div class="instr" style="text-align:center"><h2>Break ${bi+1} of ${N_BLOCKS-1}</h2>
           <p>You've completed block ${bi+1} of ${N_BLOCKS}.</p>
-          <p style="color:#6b7280">Take a short rest. When you're ready, continue.</p>
-          <div class="progress">${globalIdx} / ${totalTrials} trials done</div></div>`,
-        choices:["Continue"],
-        on_load:()=>log(`--- 휴식 ${bi+1} (블록 ${bi+1} 종료) ---`)
-      });
+          <p style="color:var(--muted)">Take a short rest. Continue when ready.</p>
+          <div class="progress-bar"><div style="width:${Math.round(gIdx/totalTrials*100)}%"></div></div>
+          <p style="color:var(--muted);font-size:14px">${gIdx} / ${totalTrials}</p></div>`,
+        choices:["Continue"], on_load:()=>flushResponses(true)});
     }
   });
 
+  // 8. 완료 코드
+  mainTimeline.push({type:jsPsychHtmlButtonResponse,
+    stimulus:()=>`<div class="instr" style="text-align:center"><h2>All done — thank you! 🎧</h2>
+      <p>You've completed the experiment. Please submit the code below to receive your reward.</p>
+      <div class="code-box">${participantCode}</div>
+      <p style="color:var(--muted)">이 코드를 제출해 주세요. / Submit this code as instructed.</p></div>`,
+    choices:["Finish"], on_load:()=>flushResponses(true)});
+
+  // 전체를 하나의 conditional timeline으로 (자격통과 + 헤드폰통과자만)
+  timeline.push({ timeline:mainTimeline, conditional_function:canProceed });
+
   jsPsych.run(timeline);
-  log("타임라인 준비 완료. preload 대기…");
 }
 
-main().catch(e=>log("<span class='warn'>오류: "+e.message+"</span>"));
+// 새로고침/이탈 경고
+window.addEventListener('beforeunload',(e)=>{ if(subjectSaved && savedCount>=0){ e.preventDefault(); e.returnValue=''; } });
+
+main().catch(e=>{ document.body.innerHTML='<p style="padding:40px;font-family:sans-serif">오류가 발생했습니다. 새로고침 해주세요.<br>An error occurred. Please refresh.<br><small>'+e.message+'</small></p>'; });
 </script>
 </body>
 </html>
