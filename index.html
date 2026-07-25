@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Step 2 — Randomization + blocks</title>
+<script src="https://unpkg.com/jspsych@8.2.1"></script>
+<script src="https://unpkg.com/@jspsych/plugin-html-button-response@2.1.0"></script>
+<script src="https://unpkg.com/@jspsych/plugin-audio-button-response@2.1.0"></script>
+<script src="https://unpkg.com/@jspsych/plugin-preload@2.1.0"></script>
+<link rel="stylesheet" href="https://unpkg.com/jspsych@8.2.1/css/jspsych.css">
+<style>
+  body{background:#f7f8fa; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;}
+  .jspsych-content{max-width:660px;}
+  .speaker-wrap{display:flex; flex-direction:column; align-items:center; gap:18px;}
+  .speaker{width:96px; height:96px; border-radius:50%; background:#eaf1f8; display:flex; align-items:center; justify-content:center;}
+  .speaker svg{width:46px; height:46px; fill:#3b6ea5;}
+  .playing .speaker{animation:pulse 1s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{transform:scale(1);opacity:1;}50%{transform:scale(1.08);opacity:.75;}}
+  .listen-label{color:#6b7280; font-size:15px;}
+  .jspsych-btn{font-size:20px !important; padding:18px 48px !important; margin:0 12px !important;
+    border-radius:12px !important; border:1px solid #d4dae2 !important; background:#fff !important; min-width:150px;}
+  .jspsych-btn:hover{background:#f0f5fa !important; border-color:#3b6ea5 !important;}
+  .qtext{font-size:20px; font-weight:600; margin-bottom:28px; text-align:center;}
+  .break-box{text-align:center;}
+  .break-box h2{color:#3b6ea5;}
+  .progress{color:#6b7280; font-size:14px; margin-top:20px;}
+  #devlog{position:fixed; bottom:0; left:0; right:0; background:#1f2430; color:#9fe6c0;
+    font-family:monospace; font-size:12px; padding:8px 14px; max-height:150px; overflow-y:auto; opacity:.94;}
+  #devlog b{color:#ffd479;} #devlog .warn{color:#ff8a80;}
+</style>
+</head>
+<body>
+<div id="devlog"><b>[dev log]</b> 초기화 중…</div>
+
+<script>
+// ============================================================
+// 2단계: 랜덤화 + 블록/휴식
+// ============================================================
+
+// ▼▼▼ 테스트 스위치 ▼▼▼
+// true  = 짧게 (각 블록에서 소수만) — 흐름 빠르게 확인용
+// false = 실제 740개 전부
+const QUICK_TEST = true;
+const QUICK_PER_BLOCK = 6;   // QUICK_TEST 시 블록당 trial 수
+// ▲▲▲
+
+const AUDIO_BASE = "audio/";
+const N_BLOCKS = 4;
+
+function log(m){const el=document.getElementById('devlog'); el.innerHTML+="<br>"+m; el.scrollTop=el.scrollHeight;}
+
+// ============================================================
+// 랜덤화 (앞서 검증한 알고리즘)
+//   1) target 섞되 동일 음원 최소 MIN_LAG 간격 유지
+//   2) 180개 구간으로 나눠 각 구간 끝에 distractor 1개 삽입
+//      → distractor 연속 배치 불가, 4~5 trial 간격 균등
+// ============================================================
+const MIN_LAG = 10;
+
+function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]];} return a; }
+
+function buildSequence(stimuli){
+  const targets = stimuli.filter(s=>s.type==='Target');
+  const distr   = stimuli.filter(s=>s.type==='Distractor');
+
+  // 1) target 섞기 (동일 음원 최소 간격)
+  let ordered=null;
+  for(let attempt=0; attempt<300 && !ordered; attempt++){
+    let pool = shuffle(targets);
+    let out=[], recent=[], ok=true;
+    while(pool.length){
+      let idx = pool.findIndex(x => !recent.includes(x.audio_file));
+      if(idx<0){ ok=false; break; }
+      out.push(pool.splice(idx,1)[0]);
+      recent.push(out[out.length-1].audio_file);
+      if(recent.length>MIN_LAG) recent.shift();
+    }
+    if(ok) ordered=out;
+  }
+  if(!ordered){ log("<span class='warn'>랜덤화 재시도 실패 — MIN_LAG 완화 필요</span>"); ordered=shuffle(targets); }
+
+  // 2) distractor 균등 삽입
+  const d = shuffle(distr);
+  const nSeg = d.length;
+  const base = Math.floor(ordered.length / nSeg);
+  const extra = ordered.length % nSeg;
+  const sizes = Array(nSeg).fill(base);
+  shuffle([...Array(nSeg).keys()]).slice(0,extra).forEach(i=>sizes[i]++);
+
+  let seq=[], k=0;
+  for(let i=0;i<nSeg;i++){
+    seq = seq.concat(ordered.slice(k, k+sizes[i]));
+    seq.push(d[i]);
+    k += sizes[i];
+  }
+  return seq;
+}
+
+// 시퀀스를 블록으로 분할
+function splitBlocks(seq, n){
+  const per = Math.ceil(seq.length/n);
+  const blocks=[];
+  for(let i=0;i<n;i++) blocks.push(seq.slice(i*per,(i+1)*per));
+  return blocks;
+}
+
+// ============================================================
+// 메인
+// ============================================================
+async function main(){
+  const stimuli = await fetch('stimuli.json').then(r=>r.json());
+  log(`stimuli 로드: ${stimuli.length}개`);
+
+  let seq = buildSequence(stimuli);
+
+  // --- 랜덤화 자기검증 ---
+  const distIdx = seq.map((s,i)=>s.type==='Distractor'?i:-1).filter(i=>i>=0);
+  const gaps = distIdx.slice(1).map((v,i)=>v-distIdx[i]);
+  const adjacentDist = gaps.some(g=>g===1);
+  let minLag=999, seen={};
+  seq.forEach((s,i)=>{ if(s.type==='Target'){ if(s.audio_file in seen) minLag=Math.min(minLag,i-seen[s.audio_file]); seen[s.audio_file]=i; }});
+  log(`<b>랜덤화 검증</b> — distractor 연속: ${adjacentDist?"<span class='warn'>있음(문제)</span>":"없음 ✓"} | 간격 ${Math.min(...gaps)}~${Math.max(...gaps)} | 동일음원 최소간격 ${minLag}`);
+
+  let blocks = splitBlocks(seq, N_BLOCKS);
+  log(`블록 분할: ${blocks.map(b=>b.length).join(' / ')}`);
+
+  // QUICK_TEST: 각 블록 앞부분만
+  if(QUICK_TEST){
+    blocks = blocks.map(b=>b.slice(0,QUICK_PER_BLOCK));
+    log(`<b>QUICK_TEST 켜짐</b> — 블록당 ${QUICK_PER_BLOCK}개만 (${blocks.flat().length} trials)`);
+  }
+
+  // preload 대상 음원
+  const allAudio = [...new Set(blocks.flat().map(s=>AUDIO_BASE+s.audio_file))];
+
+  const jsPsych = initJsPsych({
+    on_finish: ()=>{
+      log("<b>=== 종료. 블록별 기록 요약 ===</b>");
+      const data = jsPsych.data.get().filter({phase:'main'});
+      [1,2,3,4].forEach(b=>{
+        const bd = data.filter({block:b});
+        if(bd.count()) log(`블록${b}: ${bd.count()} trials 기록됨`);
+      });
+    }
+  });
+
+  const timeline=[];
+
+  timeline.push({ type:jsPsychPreload, audio:allAudio,
+    message:"<p style='color:#6b7280'>Loading sounds…</p>",
+    on_error:f=>log("<span class='warn'>preload 실패: "+f+"</span>") });
+
+  timeline.push({ type:jsPsychHtmlButtonResponse,
+    stimulus:"<div class='qtext'>2단계 테스트</div><p style='color:#6b7280'>랜덤화된 순서로 블록과 휴식이 진행됩니다.<br>각 trial: 스피커 → 소리 1회 → 선택지.</p>",
+    choices:["시작"] });
+
+  let globalIdx=0;
+  const totalTrials = blocks.flat().length;
+
+  blocks.forEach((block, bi)=>{
+    block.forEach(stim=>{
+      globalIdx++;
+      const swap = Math.random()<0.5;
+      const left  = swap? stim.opt2 : stim.opt1;
+      const right = swap? stim.opt1 : stim.opt2;
+      const gi = globalIdx;
+
+      // (A) 스피커 + 재생
+      timeline.push({
+        type:jsPsychAudioButtonResponse,
+        stimulus:AUDIO_BASE+stim.audio_file,
+        prompt:`<div class="speaker-wrap playing"><div class="speaker"><svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg></div><div class="listen-label">Listen…</div></div>`,
+        choices:[], trial_ends_after_audio:true, response_allowed_while_playing:false
+      });
+
+      // (B) 질문 + 선택지
+      timeline.push({
+        type:jsPsychHtmlButtonResponse,
+        stimulus:`<div class="qtext">${stim.question}</div>`,
+        choices:[left,right],
+        data:{
+          phase:'main', block:bi+1, trial_index:gi,
+          item_id:stim.item_id, type:stim.type, context_type:stim.context_type,
+          context_word:stim.context_word, place:stim.place, voicing:stim.voicing,
+          step:stim.step, repetition:stim.repetition, audio_file:stim.audio_file,
+          option_left:left, option_right:right, correct_answer:stim.correct
+        },
+        on_finish:(d)=>{
+          d.response_word = (d.response===0)? left : right;
+          d.is_correct = (stim.correct===null)? null : (d.response_word===stim.correct);
+          if(gi<=3 || gi%50===0) log(`trial ${gi}/${totalTrials} [B${bi+1}] ${stim.type} ${stim.audio_file} → ${d.response_word} (${d.rt}ms)`);
+        }
+      });
+    });
+
+    // 블록 사이 휴식 (마지막 블록 뒤엔 없음)
+    if(bi < blocks.length-1){
+      timeline.push({
+        type:jsPsychHtmlButtonResponse,
+        stimulus:()=>`<div class="break-box"><h2>Break ${bi+1} of ${N_BLOCKS-1}</h2>
+          <p>You've completed block ${bi+1} of ${N_BLOCKS}.</p>
+          <p style="color:#6b7280">Take a short rest. When you're ready, continue.</p>
+          <div class="progress">${globalIdx} / ${totalTrials} trials done</div></div>`,
+        choices:["Continue"],
+        on_load:()=>log(`--- 휴식 ${bi+1} (블록 ${bi+1} 종료) ---`)
+      });
+    }
+  });
+
+  jsPsych.run(timeline);
+  log("타임라인 준비 완료. preload 대기…");
+}
+
+main().catch(e=>log("<span class='warn'>오류: "+e.message+"</span>"));
+</script>
+</body>
+</html>
