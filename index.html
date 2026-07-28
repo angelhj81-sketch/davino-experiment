@@ -452,22 +452,14 @@ async function main(){
   mainTimeline.push({type:jsPsychHtmlButtonResponse,
     stimulus:`<div class="instr"><h2>Instructions</h2><ul>
       <li><b>Environment.</b> Wear headphones and stay in a quiet room.</li>
-      <li><b>Volume.</b> You'll set your volume during the practice trials. Once the main session starts, keep it unchanged. / 볼륨은 연습 단계에서 맞춥니다. 본 실험이 시작되면 바꾸지 마세요.</li>
+      <li><b>Volume.</b> You'll set your volume during the practice trials. Once the main session starts, keep it unchanged.</li>
       <li><b>Audio.</b> Each clip plays <b>only once</b>. You cannot replay or pause it.</li>
       <li><b>Response.</b> Respond as quickly as possible based on your first impression. There are no right or wrong answers.</li>
       <li><b>Duration &amp; breaks.</b> About 740 trials (40–60 min), with three short self-paced breaks.</li>
-      </ul><p style="text-align:center">First, let's set your volume and do a few practice trials.<br>먼저 볼륨을 맞추고 연습을 진행하겠습니다.</p></div>`,
-    choices:["Next / 다음"]});
+      </ul><p style="text-align:center">First, let's set your volume using a few practice trials.<br></p></div>`,
+    choices:["Start Practice"]});
 
-  // 5-b. 볼륨 재조정 안내 (헤드폰 체크와 본 실험은 적정 음량이 다름)
-  mainTimeline.push({type:jsPsychHtmlButtonResponse,
-    stimulus:`<div class="instr"><h2>볼륨 조절 / Adjust your volume</h2>
-      <p>헤드폰 검사음은 미세한 소리를 찾느라 볼륨을 높였을 수 있습니다. 이제부터는 <b>사람 목소리</b>를 듣게 됩니다.<br>
-      <span style="color:var(--muted)">The headphone test may have required a higher volume. From now on, you'll hear <b>speech</b>.</span></p>
-      <p>다음 연습 소리를 들으며 <b>목소리가 편안하고 또렷하게</b> 들리도록 볼륨을 맞추세요. 한번 정한 뒤에는 본 실험 동안 바꾸지 마세요.<br>
-      <span style="color:var(--muted)">Use the next practice sounds to set a <b>comfortable, clear</b> level for speech. Keep it fixed during the main experiment.</span></p></div>`,
-    choices:["연습 시작 / Start practice"]});
-
+ 
   // 6. 연습 (저장 안 함)
   PRACTICE.forEach((p,pi)=>{
     const swap=Math.random()<0.5; const left=swap?p.opt2:p.opt1, right=swap?p.opt1:p.opt2;
