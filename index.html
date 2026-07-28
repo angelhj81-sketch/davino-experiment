@@ -471,11 +471,10 @@ async function main(){
     );
   });
   mainTimeline.push({type:jsPsychHtmlButtonResponse,
-    stimulus:`<div class="instr"><h2>Practice complete / 연습 완료</h2>
-      <p>이제 본 실험을 시작합니다. 각 소리는 <b>한 번만</b> 재생되니 첫 인상에 따라 응답하세요.<br>
+    stimulus:`<div class="instr"><h2>Practice complete</h2>
       <span style="color:var(--muted)">The real experiment begins now. Each sound plays once — respond on first impression.</span></p>
-      <p><b>볼륨은 지금 상태로 유지해 주세요.</b> / <span style="color:var(--muted)">Please keep your volume as it is now.</span></p></div>`,
-    choices:["Begin the experiment / 시작"]});
+      <p><span style="color:var(--muted)">Please keep your volume as it is now.</span></p></div>`,
+    choices:["Begin the experiment"]});
 
   // 7. 본 실험
   const totalTrials=blocks.flat().length;
