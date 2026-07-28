@@ -85,11 +85,11 @@ const HP_PASS    = 5;       // 헤드폰 체크 통과 기준 (6문제 중)
 const HP_MAX_ATTEMPTS = 2;
 const SAVE_BATCH = 20;      // N trial마다 저장
 
-// ▼ 테스트 스위치: true=짧은 버전, false=740 전체
+// ▼ 테스트 스위치: true=짧게(블록당 소수), false=740 전체
 const QUICK_TEST = true;
 const QUICK_PER_BLOCK = 5;
 
-// 연습 자극 (huge_1_vino / ri_stp7_vino / distractor 1개)
+// 연습 자극 (huge Intact step1 / rich Replaced step7 / distractor 1개)
 const PRACTICE = [
   {audio:"huge_1_vino.wav", question:"Who is huge?", opt1:"Davino", opt2:"Gavino", correct:null},
   {audio:"ri_stp7_vino.wav", question:"Who is rich?", opt1:"Davino", opt2:"Gavino", correct:null},
@@ -452,12 +452,12 @@ async function main(){
   mainTimeline.push({type:jsPsychHtmlButtonResponse,
     stimulus:`<div class="instr"><h2>Instructions</h2><ul>
       <li><b>Environment.</b> Wear headphones and stay in a quiet room.</li>
-      <li><b>Volume.</b> Use the next practice sounds to set a comfortable, clear level for speech. Keep it fixed during the main experiment.</p></div>`,
-    choices</li>
+      <li><b>Volume.</b> Set a comfortable level now. Do not change it once the session starts.</li>
       <li><b>Audio.</b> Each clip plays <b>only once</b>. You cannot replay or pause it.</li>
       <li><b>Response.</b> Respond as quickly as possible based on your first impression. There are no right or wrong answers.</li>
       <li><b>Duration &amp; breaks.</b> About 740 trials (40–60 min), with three short self-paced breaks.</li>
-      </ul><p style="text-align:center">First, a few practice trials.:["Start practice"]});
+      </ul><p style="text-align:center">First, a few practice trials.</p></div>`,
+    choices:["Start practice"]});
 
   // 6. 연습 (저장 안 함)
   PRACTICE.forEach((p,pi)=>{
