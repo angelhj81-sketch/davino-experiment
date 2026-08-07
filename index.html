@@ -58,6 +58,15 @@
   .progress-bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin-top:20px;}
   .progress-bar > div{height:100%;background:var(--accent);transition:width .3s;}
   #savelog{position:fixed;bottom:6px;right:8px;font-size:11px;color:#aaa;font-family:monospace;}
+  /* 영어 과제: 기준 단어의 강조 부분 (굵게 + 밑줄 + 색) */
+  .instr b, div b { font-weight:800; }
+  .prof-word b { color:var(--accent); text-decoration:underline; text-decoration-thickness:3px; text-underline-offset:4px; }
+  /* 영어 과제: 오디오 재생 버튼 */
+  .audio-play-btn{ font-size:18px; padding:14px 28px; border-radius:12px;
+    border:1.5px solid var(--accent); background:var(--accent-bg); color:var(--accent);
+    font-weight:600; cursor:pointer; transition:all .12s; }
+  .audio-play-btn:hover{ background:#dbe8f5; }
+  .audio-play-btn.playing-btn{ background:var(--accent); color:#fff; }
 </style>
 </head>
 <body>
@@ -101,7 +110,7 @@ const PRACTICE = [
 // prompt_html: 기준 단어(강조 <b>표시). answer: 정답 오디오(1 또는 2).
 const ENG_BASE = "eng_task/";
 const ENG_TASK = [
-  {id:1, prompt:'ri<b>gh</b>t', focus:'the sound spelled "r"', a1:"q1_opt1_rake.wav", a2:"q1_opt2_light.wav", answer:1, type:"filler_LR"},
+  {id:1, prompt:'<b>r</b>ight', focus:'the sound spelled "r"', a1:"q1_opt1_rake.wav", a2:"q1_opt2_light.wav", answer:1, type:"filler_LR"},
   {id:2, prompt:'<b>z</b>ip',    focus:'the sound spelled "z"', a1:"q2_opt1_zone.wav", a2:"q2_opt2_jeep.wav", answer:1, type:"target_z"},
   {id:3, prompt:'<b>f</b>an',    focus:'the sound spelled "f"', a1:"q3_opt1_face.wav", a2:"q3_opt2_pan.wav",  answer:1, type:"filler_PF"},
   {id:4, prompt:'s<b>i</b>t',    focus:'the vowel sound',        a1:"q4_opt1_hid.wav",  a2:"q4_opt2_team.wav", answer:1, type:"filler_vowel_I"},
@@ -341,40 +350,51 @@ function makeEngTaskBlock(){
   const tl=[];
   const items=shuffle(ENG_TASK);
   const score={correct:0, target:0};
+  const total=items.length;
   items.forEach((it,i)=>{
-    // 문항 시작 + 기준 단어 제시 + Audio 1 재생
-    tl.push({type:jsPsychAudioButtonResponse, stimulus:ENG_BASE+it.a1,
-      prompt:`<div class="instr" style="text-align:center">
-        <div class="listen-label">Question ${i+1} / ${ENG_TASK.length}</div>
-        <div class="qtext" style="font-size:28px;margin:18px 0">${it.prompt}</div>
-        <p style="color:var(--muted)">Listen to the highlighted sound in the word above, then to the two options.<br>위 단어의 강조된 소리를 잘 듣고, 아래 두 소리를 들어보세요.</p>
-        <p style="color:var(--muted)"><b>Playing Audio 1…</b></p></div>`,
-      choices:[], trial_ends_after_audio:true, response_allowed_while_playing:false});
-    // Audio 2 재생
-    tl.push({type:jsPsychAudioButtonResponse, stimulus:ENG_BASE+it.a2,
-      prompt:`<div class="instr" style="text-align:center">
-        <div class="qtext" style="font-size:28px;margin:18px 0">${it.prompt}</div>
-        <p style="color:var(--muted)"><b>Playing Audio 2…</b></p></div>`,
-      choices:[], trial_ends_after_audio:true, response_allowed_while_playing:false});
-    // 선택
-    tl.push({type:jsPsychHtmlButtonResponse,
-      stimulus:`<div class="qtext" style="font-size:28px">${it.prompt}</div>
-        <p style="color:var(--muted)">Which option contained the same highlighted sound?<br>어느 소리에 위 단어의 강조된 소리와 같은 소리가 들어 있었나요?</p>`,
-      choices:["Audio 1", "Audio 2"],
-      data:{phase:"eng_task", item_id:it.id, item_type:it.type, correct_answer:it.answer},
+    const isLast=(i===total-1);
+    tl.push({
+      type:jsPsychHtmlButtonResponse,
+      // 한 화면: 강조 단어(상단) + Audio A/B 재생 버튼 + A/B 선택 버튼
+      stimulus:`<div class="instr" style="text-align:center">
+        <div class="listen-label">Question ${i+1} / ${total}</div>
+        <div class="prof-word" style="font-size:34px;font-weight:700;margin:20px 0 6px;letter-spacing:1px">${it.prompt}</div>
+        <p style="color:var(--muted);margin-top:0">Listen to the <b>bold / underlined</b> sound above,<br>then find which audio contains the same sound.</p>
+        <div style="display:flex;gap:16px;justify-content:center;margin:26px 0 8px">
+          <button type="button" id="playA" class="audio-play-btn">▶ Audio A</button>
+          <button type="button" id="playB" class="audio-play-btn">▶ Audio B</button>
+        </div>
+        <p style="color:var(--muted);font-size:14px">You can replay each sound as many times as you like.</p>
+        <p style="margin-top:22px;font-weight:600">Which one has the same sound? ↓</p>
+      </div>`,
+      choices:["A", "B"],
+      data:{phase:"prof_task", item_id:it.id, item_type:it.type, correct_answer:it.answer},
+      on_load:()=>{
+        // 오디오 요소 두 개를 만들어 버튼에 연결 (자유 재생)
+        const aA=new Audio(ENG_BASE+it.a1), aB=new Audio(ENG_BASE+it.a2);
+        const bA=document.getElementById('playA'), bB=document.getElementById('playB');
+        if(bA)bA.addEventListener('click',()=>{ aB.pause(); aB.currentTime=0; aA.currentTime=0; aA.play(); bA.classList.add('playing-btn'); setTimeout(()=>bA.classList.remove('playing-btn'),700); });
+        if(bB)bB.addEventListener('click',()=>{ aA.pause(); aA.currentTime=0; aB.currentTime=0; aB.play(); bB.classList.add('playing-btn'); setTimeout(()=>bB.classList.remove('playing-btn'),700); });
+      },
       on_finish:(d)=>{
-        const chosen=d.response+1;   // 0,1 → 1,2
+        const chosen=d.response+1;   // 0,1 → A(1),B(2)
         d.chosen=chosen;
         d.is_correct=(chosen===it.answer);
         if(d.is_correct){ score.correct++; if(it.type.startsWith('target')) score.target++; }
-        // 개별 응답도 responses 테이블에 기록
+        // 개별 응답 기록
         queueResponse({ session_id:sessionId, trial_index:-1, block:0,
-          item_id:'eng_'+it.id, type:'EngTask', context_type:it.type,
+          item_id:'prof_'+it.id, type:'ProfTask', context_type:it.type,
           context_word:null, place:null, voicing:null, step:null, repetition:null,
-          audio_file:it.a1+'|'+it.a2, option_left:'Audio1', option_right:'Audio2',
-          response:'Audio'+chosen, correct_answer:'Audio'+it.answer,
+          audio_file:it.a1+'|'+it.a2, option_left:'A', option_right:'B',
+          response:(chosen===1?'A':'B'), correct_answer:(it.answer===1?'A':'B'),
           is_correct:d.is_correct, rt:d.rt });
-      }});
+        // 마지막 문항이 끝나면 총점 저장 (여기서 저장해야 확실히 실행됨)
+        if(isLast){
+          profTaskScore=score.correct; profTargetScore=score.target;
+          saveProfScore();
+        }
+      }
+    });
   });
   return {tl, score};
 }
@@ -515,27 +535,26 @@ async function main(){
   timeline.push({timeline:[{type:jsPsychHtmlButtonResponse,
     stimulus:`<div class="instr"><h2>확인 완료 / Check complete</h2>
       <p>헤드폰 확인이 끝났습니다. 실험으로 넘어갑니다.<br><span style="color:var(--muted)">Headphone check complete. Proceeding to the experiment.</span></p></div>`,
-    choices:["계속 / Continue"]}], conditional_function:notExcluded,
-    on_finish:()=>{ hpScore=hpResult.correct; saveHpScore(); }});
+    choices:["계속 / Continue"],
+    on_finish:()=>{ hpScore=hpResult.correct; saveHpScore(); }}], conditional_function:notExcluded});
 
   // --- 4-b. 영어 변별 과제 (한국어 L1 참가자만, 점수만 기록) ---
   const isKorean=()=>notExcluded() && A.l1==='Korean';
   const engBlock=makeEngTaskBlock();
   // 안내
   timeline.push({timeline:[{type:jsPsychHtmlButtonResponse,
-    stimulus:`<div class="instr"><h2>영어 소리 구분 / English sound discrimination</h2>
-      <p>이번에는 영어 자음·모음 소리를 구분하는 짧은 과제입니다 (${ENG_TASK.length}문제).<br>
-      <span style="color:var(--muted)">A short task on distinguishing English sounds (${ENG_TASK.length} questions).</span></p>
-      <p>화면에 단어가 하나 제시되고 <b>일부 소리가 강조</b>되어 있습니다. 그 강조된 소리를 잘 듣고, 이어서 들려주는 <b>두 소리(Audio 1, Audio 2)</b> 중 <b>같은 소리</b>가 들어 있는 것을 고르세요.<br>
-      <span style="color:var(--muted)">A word will appear with part of it highlighted. Listen for that sound, then choose which of the two audio options contains the same sound.</span></p></div>`,
+    stimulus:`<div class="instr"><h2>English pronunciation task / 영어 발음 과제</h2>
+      <p>이어지는 과제는 <b>영어 발음 숙련도</b>를 알아보기 위한 것입니다 (${ENG_TASK.length}문제).<br>
+      <span style="color:var(--muted)">The following is a short English pronunciation task (${ENG_TASK.length} questions).</span></p>
+      <p>화면 상단에 단어가 하나 제시되며, 그 단어의 <b>굵고 밑줄 친 부분</b>이 강조되어 있습니다. 아래의 <b>Audio A</b>와 <b>Audio B</b>를 자유롭게 들어본 뒤, <b>강조된 부분과 같은 소리</b>가 들어 있는 것을 고르세요.<br>
+      <span style="color:var(--muted)">A word will appear with part of it in <b>bold and underlined</b>. Play Audio A and Audio B as many times as you like, then choose the one that contains the <b>same sound</b> as the highlighted part.</span></p></div>`,
     choices:["시작 / Start"]}], conditional_function:isKorean});
   // 과제 문항
   timeline.push({timeline:engBlock.tl, conditional_function:isKorean});
-  // 완료 + 점수 저장
+  // 완료 (여기서부터는 영어만 — 본 실험 언어 모드 유지)
   timeline.push({timeline:[{type:jsPsychHtmlButtonResponse,
-    stimulus:`<div class="instr"><h2>완료 / Done</h2><p>수고하셨습니다. 다음으로 넘어갑니다.<br><span style="color:var(--muted)">Thank you. Moving on.</span></p></div>`,
-    choices:["계속 / Continue"]}], conditional_function:isKorean,
-    on_finish:()=>{ profTaskScore=engBlock.score.correct; profTargetScore=engBlock.score.target; saveProfScore(); }});
+    stimulus:`<div class="instr"><h2>Well done!</h2><p>That completes the warm-up tasks. The main study will now begin.</p></div>`,
+    choices:["Continue"]}], conditional_function:isKorean});
 
   // 헤드폰 결과와 무관하게 자격 통과자는 모두 본 실험으로 진행
   const canProceed=()=>notExcluded();
@@ -547,21 +566,19 @@ async function main(){
   mainTimeline.push({type:jsPsychHtmlButtonResponse,
     stimulus:`<div class="instr"><h2>Instructions</h2><ul>
       <li><b>Environment.</b> Wear headphones and stay in a quiet room.</li>
-      <li><b>Volume.</b> You'll set your volume during the practice trials. Once the main session starts, keep it unchanged. / 볼륨은 연습 단계에서 맞춥니다. 본 실험이 시작되면 바꾸지 마세요.</li>
+      <li><b>Volume.</b> You'll set your volume during the practice trials. Once the main session starts, keep it unchanged.</li>
       <li><b>Audio.</b> Each clip plays <b>only once</b>. You cannot replay or pause it.</li>
       <li><b>Response.</b> Respond as quickly as possible based on your first impression. There are no right or wrong answers.</li>
       <li><b>Duration &amp; breaks.</b> About 740 trials (40–60 min), with three short self-paced breaks.</li>
-      </ul><p style="text-align:center">First, let's set your volume and do a few practice trials.<br>먼저 볼륨을 맞추고 연습을 진행하겠습니다.</p></div>`,
+      </ul><p style="text-align:center">First, let's set your volume and do a few practice trials.</p></div>`,
     choices:["Next / 다음"]});
 
   // 5-b. 볼륨 재조정 안내 (헤드폰 체크와 본 실험은 적정 음량이 다름)
   mainTimeline.push({type:jsPsychHtmlButtonResponse,
-    stimulus:`<div class="instr"><h2>볼륨 조절 / Adjust your volume</h2>
-      <p>헤드폰 검사음은 미세한 소리를 찾느라 볼륨을 높였을 수 있습니다. 이제부터는 <b>사람 목소리</b>를 듣게 됩니다.<br>
-      <span style="color:var(--muted)">The headphone test may have required a higher volume. From now on, you'll hear <b>speech</b>.</span></p>
-      <p>다음 연습 소리를 들으며 <b>목소리가 편안하고 또렷하게</b> 들리도록 볼륨을 맞추세요. 한번 정한 뒤에는 본 실험 동안 바꾸지 마세요.<br>
-      <span style="color:var(--muted)">Use the next practice sounds to set a <b>comfortable, clear</b> level for speech. Keep it fixed during the main experiment.</span></p></div>`,
-    choices:["연습 시작 / Start practice"]});
+    stimulus:`<div class="instr"><h2>Adjust your volume</h2>
+      <p>The headphone test may have required a higher volume. From now on, you'll be listening to <b>speech</b>.</p>
+      <p>Use the practice sounds that follow to set a <b>comfortable and clear</b> level for the voice. Once you've set it, please keep it unchanged throughout the main experiment.</p></div>`,
+    choices:["Start practice"]});
 
   // 6. 연습 (저장 안 함)
   PRACTICE.forEach((p,pi)=>{
@@ -576,11 +593,10 @@ async function main(){
     );
   });
   mainTimeline.push({type:jsPsychHtmlButtonResponse,
-    stimulus:`<div class="instr"><h2>Practice complete / 연습 완료</h2>
-      <p>이제 본 실험을 시작합니다. 각 소리는 <b>한 번만</b> 재생되니 첫 인상에 따라 응답하세요.<br>
-      <span style="color:var(--muted)">The real experiment begins now. Each sound plays once — respond on first impression.</span></p>
-      <p><b>볼륨은 지금 상태로 유지해 주세요.</b> / <span style="color:var(--muted)">Please keep your volume as it is now.</span></p></div>`,
-    choices:["Begin the experiment / 시작"]});
+    stimulus:`<div class="instr"><h2>Practice complete</h2>
+      <p>The real experiment begins now. Each sound plays <b>only once</b>, so respond based on your first impression.</p>
+      <p><b>Please keep your volume as it is now.</b></p></div>`,
+    choices:["Begin the experiment"]});
 
   // 7. 본 실험
   const totalTrials=blocks.flat().length;
