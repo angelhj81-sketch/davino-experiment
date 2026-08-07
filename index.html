@@ -96,12 +96,29 @@ const PRACTICE = [
   {audio:"distractor_001.mp3", question:"How was the weather?", opt1:"Bad", opt2:"Nice", correct:"Nice"},
 ];
 
+// 영어 변별 과제 (한국어 L1 참가자만). 기준 단어를 화면에 글자로 보여주고,
+// 강조된 소리와 같은 소리가 든 보기를 고름. 점수만 기록(종료 없음).
+// prompt_html: 기준 단어(강조 <b>표시). answer: 정답 오디오(1 또는 2).
+const ENG_BASE = "eng_task/";
+const ENG_TASK = [
+  {id:1, prompt:'ri<b>gh</b>t', focus:'the sound spelled "r"', a1:"q1_opt1_rake.wav", a2:"q1_opt2_light.wav", answer:1, type:"filler_LR"},
+  {id:2, prompt:'<b>z</b>ip',    focus:'the sound spelled "z"', a1:"q2_opt1_zone.wav", a2:"q2_opt2_jeep.wav", answer:1, type:"target_z"},
+  {id:3, prompt:'<b>f</b>an',    focus:'the sound spelled "f"', a1:"q3_opt1_face.wav", a2:"q3_opt2_pan.wav",  answer:1, type:"filler_PF"},
+  {id:4, prompt:'s<b>i</b>t',    focus:'the vowel sound',        a1:"q4_opt1_hid.wav",  a2:"q4_opt2_team.wav", answer:1, type:"filler_vowel_I"},
+  {id:5, prompt:'<b>v</b>an',    focus:'the sound spelled "v"', a1:"q5_opt1_ban.wav",  a2:"q5_opt2_vote.wav", answer:2, type:"filler_BV"},
+  {id:6, prompt:'<b>j</b>eep',   focus:'the sound spelled "j"', a1:"q6_opt1_zest.wav", a2:"q6_opt2_jump.wav", answer:2, type:"target_dz"},
+  {id:7, prompt:'h<b>a</b>d',    focus:'the vowel sound',        a1:"q7_opt1_pet.wav",  a2:"q7_opt2_mass.wav", answer:2, type:"filler_vowel_AE"},
+  {id:8, prompt:'<b>th</b>ink',  focus:'the sound spelled "th"',a1:"q8_opt1_sink.wav", a2:"q8_opt2_three.wav",answer:2, type:"filler_TH"},
+];
+
 // ---------- 상태 ----------
 const sessionId = crypto.randomUUID();
 const A = {};                    // 설문 답변
 let participantCode = "";
 let subjectSaved = false;
 let hpScore = null;              // 헤드폰 체크 점수 (6문제 중 정답 수, 참고용 기록)
+let profTaskScore = null;         // 영어 변별 과제 점수 (8문제 중 정답 수)
+let profTargetScore = null;       // 그중 표적(z/dz) 정답 수 (0~2)
 const SPEAKER_SVG = '<svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>';
 
 function makeCode(){const c="ABCDEFGHJKMNPQRSTUVWXYZ23456789";let s="";for(let i=0;i<6;i++)s+=c[Math.floor(Math.random()*c.length)];return "DG-"+s;}
@@ -179,9 +196,18 @@ const surveyHTML = `<div class="survey">
     <div class="opts"><div class="opt" data-q="music" data-v="No">No</div><div class="opt" data-q="music" data-v="Yes">Yes</div></div>
     <div id="music-sub" class="subfield hidden"><label>Total years of training</label><input type="number" id="musicYears" min="0" step="0.5" placeholder="e.g. 5"></div></div>
   <div id="korean-block" class="hidden"><div style="border-top:1px solid var(--line);padding-top:18px;">
-    <div class="q"><label class="qlabel">3. What is your highest official TOEIC score?</label>
-      <div class="inline"><input type="number" id="toeic" min="0" max="990" placeholder="e.g. 920">
-        <label class="checkline"><input type="checkbox" id="toeicNone"> Never taken</label></div></div>
+    <div class="q"><label class="qlabel">3. Do you have any official English proficiency test score? If so, which test and what score?<br><span style="font-weight:400;color:var(--muted)">공인 영어성적이 있다면 어떤 시험이고 몇 점인지 기입해 주세요.</span></label>
+      <div class="opts">
+        <div class="opt" data-q="engtest" data-v="TOEIC">TOEIC</div>
+        <div class="opt" data-q="engtest" data-v="TOEFL">TOEFL</div>
+        <div class="opt" data-q="engtest" data-v="IELTS">IELTS</div>
+        <div class="opt" data-q="engtest" data-v="OPIc">OPIc</div>
+        <div class="opt" data-q="engtest" data-v="Other">Other / 기타</div>
+        <div class="opt" data-q="engtest" data-v="None">None / 없음</div>
+      </div>
+      <div id="engscore-sub" class="subfield hidden">
+        <label>Score / 점수 <span style="color:var(--muted)">(e.g. TOEIC 920, IELTS 7.0, OPIc AL)</span></label>
+        <input type="text" id="engScore" placeholder="e.g. 920"></div></div>
     <div class="q"><label class="qlabel">4. Have you ever lived in an English-speaking country (US, UK, Canada, Australia, etc.) for more than 6 months?</label>
       <div class="opts"><div class="opt" data-q="abroad" data-v="No">No</div><div class="opt" data-q="abroad" data-v="Yes">Yes</div></div>
       <div id="abroad-sub" class="subfield hidden">
@@ -215,21 +241,19 @@ function bindSurvey(){
       if(q==='music')document.getElementById('music-sub').classList.toggle('hidden',A.music!=='Yes');
       if(q==='abroad')document.getElementById('abroad-sub').classList.toggle('hidden',A.abroad!=='Yes');
       if(q==='otherlangs')document.getElementById('langs-sub').classList.toggle('hidden',A.otherlangs!=='Yes');
+      // 영어시험 종류: None/기타가 아니면 점수 입력칸 표시
+      if(q==='engtest'){
+        const showScore = (A.engtest!=='None');
+        document.getElementById('engscore-sub').classList.toggle('hidden', !showScore);
+      }
     });
   });
   // 입력칸: 값이 바뀔 때마다 A에 저장 (화면이 사라진 뒤에도 값 유지)
-  const textIds=['age','musicYears','toeic','abroadCountry','abroadMonths','origin','koreaDur','otherLangsText'];
+  const textIds=['age','musicYears','engScore','abroadCountry','abroadMonths','origin','koreaDur','otherLangsText'];
   textIds.forEach(id=>{
     const el=document.getElementById(id);
     if(el)el.addEventListener('input',()=>{ A['_'+id]=el.value; });
   });
-  const tn=document.getElementById('toeicNone');
-  if(tn)tn.addEventListener('change',()=>{
-    const t=document.getElementById('toeic');
-    t.disabled=tn.checked; if(tn.checked){t.value=''; A['_toeic']='';}
-    A._toeicNone=tn.checked;
-  });
-  A._toeicNone=false;
 }
 
 // 설문 검증 + 판정 + 저장. 반환: {ok, eligible, reason}
@@ -243,8 +267,7 @@ function processSurvey(){
   if(!A.hearing)return{ok:false,msg:"Please answer question 2 (hearing)."};
   if(!A.music)return{ok:false,msg:"Please answer the musical training question."};
   if(A.l1==='Korean'){
-    const none=!!A._toeicNone;
-    if(!none&&!A._toeic)return{ok:false,msg:"Please enter your TOEIC score, or check 'Never taken'."};
+    if(!A.engtest)return{ok:false,msg:"Please answer question 3 (English proficiency test)."};
     if(!A.abroad)return{ok:false,msg:"Please answer question 4 (living abroad)."};
   }
   if(A.l1==='English'){
@@ -252,15 +275,10 @@ function processSurvey(){
     if(!A._koreaDur||!A.koreaUnit)return{ok:false,msg:"Please answer question 4 (time in Korea)."};
     if(!A.otherlangs)return{ok:false,msg:"Please answer question 5 (other languages)."};
   }
-  // 판정
+  // 판정 (종료 조건: 나이, 청력만. 영어성적은 종료 조건 아님)
   let reason=null;
   if(A.hearing==='Yes')reason='hearing';
   else if(isNaN(age)||age<20||age>39)reason='age';
-  else if(A.l1==='Korean'){
-    const none=!!A._toeicNone;
-    const toeic=parseInt(A._toeic,10);
-    if(none)reason='no_toeic'; else if(toeic<900)reason='toeic';
-  }
   const eligible=(reason===null);
   let koreaMonths=null;
   if(A.l1==='English'){const d=parseFloat(A._koreaDur);koreaMonths=(A.koreaUnit==='years')?d*12:d;}
@@ -270,8 +288,8 @@ function processSurvey(){
     age:age, gender:A.gender, l1:A.l1,
     hearing_impair:A.hearing==='Yes', music_training:A.music==='Yes',
     music_years:A.music==='Yes'?parseFloat(A._musicYears)||null:null,
-    toeic_score:(A.l1==='Korean'&&!A._toeicNone)?parseInt(A._toeic,10):null,
-    toeic_none:A.l1==='Korean'?!!A._toeicNone:null,
+    eng_test_type:A.l1==='Korean'?(A.engtest||null):null,
+    eng_test_score:(A.l1==='Korean'&&A.engtest&&A.engtest!=='None')?(A._engScore||'').trim()||null:null,
     lived_abroad:A.l1==='Korean'?(A.abroad==='Yes'):null,
     abroad_country:A.abroad==='Yes'?(A._abroadCountry||'').trim()||null:null,
     abroad_months:A.abroad==='Yes'?parseFloat(A._abroadMonths)||null:null,
@@ -307,6 +325,61 @@ async function saveHpScore(){
   }catch(e){ /* 실패해도 본 실험 진행에는 영향 없음 */ }
 }
 
+// 영어 변별 과제 점수를 subjects 행에 업데이트 (참고용 기록, 종료에는 사용하지 않음)
+async function saveProfScore(){
+  if(!subjectSaved || profTaskScore===null) return;
+  try{
+    await sb.from('subjects')
+      .update({ prof_task_score: profTaskScore, prof_target: profTargetScore })
+      .eq('session_id', sessionId);
+    slog('prof task score saved: '+profTaskScore);
+  }catch(e){ /* 실패해도 진행에 영향 없음 */ }
+}
+
+// 영어 변별 과제 블록 생성 (문항 순서 랜덤화, 각 문항의 개별 응답도 responses에 기록)
+function makeEngTaskBlock(){
+  const tl=[];
+  const items=shuffle(ENG_TASK);
+  const score={correct:0, target:0};
+  items.forEach((it,i)=>{
+    // 문항 시작 + 기준 단어 제시 + Audio 1 재생
+    tl.push({type:jsPsychAudioButtonResponse, stimulus:ENG_BASE+it.a1,
+      prompt:`<div class="instr" style="text-align:center">
+        <div class="listen-label">Question ${i+1} / ${ENG_TASK.length}</div>
+        <div class="qtext" style="font-size:28px;margin:18px 0">${it.prompt}</div>
+        <p style="color:var(--muted)">Listen to the highlighted sound in the word above, then to the two options.<br>위 단어의 강조된 소리를 잘 듣고, 아래 두 소리를 들어보세요.</p>
+        <p style="color:var(--muted)"><b>Playing Audio 1…</b></p></div>`,
+      choices:[], trial_ends_after_audio:true, response_allowed_while_playing:false});
+    // Audio 2 재생
+    tl.push({type:jsPsychAudioButtonResponse, stimulus:ENG_BASE+it.a2,
+      prompt:`<div class="instr" style="text-align:center">
+        <div class="qtext" style="font-size:28px;margin:18px 0">${it.prompt}</div>
+        <p style="color:var(--muted)"><b>Playing Audio 2…</b></p></div>`,
+      choices:[], trial_ends_after_audio:true, response_allowed_while_playing:false});
+    // 선택
+    tl.push({type:jsPsychHtmlButtonResponse,
+      stimulus:`<div class="qtext" style="font-size:28px">${it.prompt}</div>
+        <p style="color:var(--muted)">Which option contained the same highlighted sound?<br>어느 소리에 위 단어의 강조된 소리와 같은 소리가 들어 있었나요?</p>`,
+      choices:["Audio 1", "Audio 2"],
+      data:{phase:"eng_task", item_id:it.id, item_type:it.type, correct_answer:it.answer},
+      on_finish:(d)=>{
+        const chosen=d.response+1;   // 0,1 → 1,2
+        d.chosen=chosen;
+        d.is_correct=(chosen===it.answer);
+        if(d.is_correct){ score.correct++; if(it.type.startsWith('target')) score.target++; }
+        // 개별 응답도 responses 테이블에 기록
+        queueResponse({ session_id:sessionId, trial_index:-1, block:0,
+          item_id:'eng_'+it.id, type:'EngTask', context_type:it.type,
+          context_word:null, place:null, voicing:null, step:null, repetition:null,
+          audio_file:it.a1+'|'+it.a2, option_left:'Audio1', option_right:'Audio2',
+          response:'Audio'+chosen, correct_answer:'Audio'+it.answer,
+          is_correct:d.is_correct, rt:d.rt });
+      }});
+  });
+  return {tl, score};
+}
+
+
 // ============================================================
 // 헤드폰 체크 블록 생성
 // ============================================================
@@ -339,7 +412,7 @@ function makeHPBlock(attemptNum, scoreObj){
 // 메인
 // ============================================================
 async function main(){
-  const isMobile=/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)||window.matchMedia('(max-width:820px)').matches;
+  const isMobile=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
   const jsPsych=initJsPsych({
     on_finish: async ()=>{ await flushResponses(true); }
@@ -366,8 +439,9 @@ async function main(){
   hpAudio.push(HP_BASE+"HugginsPitch_calibration.wav");
   const mainAudio=[...new Set(blocks.flat().map(s=>AUDIO_BASE+s.audio_file))];
   const practiceAudio=PRACTICE.map(p=>AUDIO_BASE+p.audio);
+  const engAudio=[]; ENG_TASK.forEach(it=>{ engAudio.push(ENG_BASE+it.a1); engAudio.push(ENG_BASE+it.a2); });
 
-  timeline.push({type:jsPsychPreload, audio:[...hpAudio, ...practiceAudio, ...mainAudio],
+  timeline.push({type:jsPsychPreload, audio:[...hpAudio, ...engAudio, ...practiceAudio, ...mainAudio],
     message:"<p style='color:#6b7280'>Loading… 잠시만 기다려 주세요.</p>", max_load_time:60000,
     error_message:"<p>일부 파일을 불러오지 못했습니다. 새로고침 해주세요.<br>Some files failed to load. Please refresh.</p>"});
 
@@ -375,32 +449,8 @@ async function main(){
   timeline.push({type:jsPsychHtmlButtonResponse,
     stimulus:`<div><h2 style="text-align:center;color:var(--accent)">Speech Perception Experiment</h2>
       <div class="consent-body">
-        <p><em>[ 연구대상자 동의서
-
-연구제목:  Speech Perception Experiment
-
-1. 본인은 위 연구에 대해 구두로 설명을 받고 연구대상자 설명문을 읽었으며 담당연구자와 이에 대해 의논하였습니다.
-
-2. 본인은 위험과 이득에 관하여 들었으며 질문에 만족할 만한 답변을 얻었습니다.
-
-3. 본인은 이 연구에 참여하는 것에 대하여 자발적으로 동의합니다.
-
-4. 본인은 언제든지 연구의 참여를 거부하거나 연구의 참여를 중도에 철회할 수 있고 이러한 결정이 나에게 어떠한 해가 되지 않을 것이라는 것을 알고 있습니다.
-
-5. 본인은 이 동의서에 서명함으로써 나의 개인정보가 현행 법률과 규정이 허용하는 범위 내에서 연구자가 수집하고 처리하는데 동의합니다.
-
-6. 본인은 이 동의서 사본을 받을 것을 알고 있습니다. ]</em></p>
-        <p>I have received a verbal explanation of the above study, read the Subject Information Sheet, and discussed it with the principal investigator/study coordinator.
-
-I have been informed about the risks and benefits of the study and have received satisfactory answers to my questions.
-
-I voluntarily agree to participate in this study.
-
-I understand that I may refuse to participate or withdraw my consent at any time without any penalty or loss of benefits to which I am otherwise entitled.
-
-By signing this consent form, I agree that my personal information will be collected and processed by the researcher to the extent permitted by current laws and regulations.
-
-I understand that I will receive a copy of this signed consent form.</p>
+        <p><em>[ IRB 승인 동의서 전문을 여기에 넣으세요. 아래는 자리표시용입니다. ]</em></p>
+        <p>You are invited to take part in a research study on speech perception. Participation is voluntary; you may stop anytime without penalty. The study takes about 40–60 minutes and involves listening to short audio clips and choosing between two options.</p>
         <p>Your responses are recorded anonymously. No personally identifying information is collected.</p>
       </div>
       <p style="text-align:center">By clicking below, you confirm that you have read and understood the above and agree to participate.</p></div>`,
@@ -468,6 +518,25 @@ I understand that I will receive a copy of this signed consent form.</p>
     choices:["계속 / Continue"]}], conditional_function:notExcluded,
     on_finish:()=>{ hpScore=hpResult.correct; saveHpScore(); }});
 
+  // --- 4-b. 영어 변별 과제 (한국어 L1 참가자만, 점수만 기록) ---
+  const isKorean=()=>notExcluded() && A.l1==='Korean';
+  const engBlock=makeEngTaskBlock();
+  // 안내
+  timeline.push({timeline:[{type:jsPsychHtmlButtonResponse,
+    stimulus:`<div class="instr"><h2>영어 소리 구분 / English sound discrimination</h2>
+      <p>이번에는 영어 자음·모음 소리를 구분하는 짧은 과제입니다 (${ENG_TASK.length}문제).<br>
+      <span style="color:var(--muted)">A short task on distinguishing English sounds (${ENG_TASK.length} questions).</span></p>
+      <p>화면에 단어가 하나 제시되고 <b>일부 소리가 강조</b>되어 있습니다. 그 강조된 소리를 잘 듣고, 이어서 들려주는 <b>두 소리(Audio 1, Audio 2)</b> 중 <b>같은 소리</b>가 들어 있는 것을 고르세요.<br>
+      <span style="color:var(--muted)">A word will appear with part of it highlighted. Listen for that sound, then choose which of the two audio options contains the same sound.</span></p></div>`,
+    choices:["시작 / Start"]}], conditional_function:isKorean});
+  // 과제 문항
+  timeline.push({timeline:engBlock.tl, conditional_function:isKorean});
+  // 완료 + 점수 저장
+  timeline.push({timeline:[{type:jsPsychHtmlButtonResponse,
+    stimulus:`<div class="instr"><h2>완료 / Done</h2><p>수고하셨습니다. 다음으로 넘어갑니다.<br><span style="color:var(--muted)">Thank you. Moving on.</span></p></div>`,
+    choices:["계속 / Continue"]}], conditional_function:isKorean,
+    on_finish:()=>{ profTaskScore=engBlock.score.correct; profTargetScore=engBlock.score.target; saveProfScore(); }});
+
   // 헤드폰 결과와 무관하게 자격 통과자는 모두 본 실험으로 진행
   const canProceed=()=>notExcluded();
 
@@ -496,7 +565,9 @@ I understand that I will receive a copy of this signed consent form.</p>
 
   // 6. 연습 (저장 안 함)
   PRACTICE.forEach((p,pi)=>{
-    const swap=Math.random()<0.5; const left=swap?p.opt2:p.opt1, right=swap?p.opt1:p.opt2;
+    let left, right;
+    if(p.correct===null){ left=p.opt1; right=p.opt2; }  // Target: 고정
+    else{ const swap=Math.random()<0.5; left=swap?p.opt2:p.opt1; right=swap?p.opt1:p.opt2; }  // distractor: 랜덤
     mainTimeline.push(
       {type:jsPsychAudioButtonResponse, stimulus:AUDIO_BASE+p.audio,
         prompt:`<div class="playing"><div class="speaker">${SPEAKER_SVG}</div><div class="listen-label">Practice ${pi+1}/${PRACTICE.length} · Listen…</div></div>`,
@@ -517,7 +588,13 @@ I understand that I will receive a copy of this signed consent form.</p>
   blocks.forEach((block,bi)=>{
     block.forEach(stim=>{
       gIdx++; const gi=gIdx;
-      const swap=Math.random()<0.5; const left=swap?stim.opt2:stim.opt1, right=swap?stim.opt1:stim.opt2;
+      // Target: 좌우 고정 (opt1=Davino 왼쪽, opt2=Gavino 오른쪽). Distractor: 좌우 랜덤.
+      let left, right;
+      if(stim.type==='Target'){
+        left=stim.opt1; right=stim.opt2;
+      }else{
+        const swap=Math.random()<0.5; left=swap?stim.opt2:stim.opt1; right=swap?stim.opt1:stim.opt2;
+      }
       mainTimeline.push(
         {type:jsPsychAudioButtonResponse, stimulus:AUDIO_BASE+stim.audio_file,
           prompt:`<div class="playing"><div class="speaker">${SPEAKER_SVG}</div><div class="listen-label">Listen…</div></div>`,
