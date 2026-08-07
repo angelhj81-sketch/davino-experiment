@@ -86,7 +86,7 @@ const HP_MAX_ATTEMPTS = 2;
 const SAVE_BATCH = 20;      // N trial마다 저장
 
 // ▼ 테스트 스위치: true=짧게(블록당 소수), false=740 전체
-const QUICK_TEST = false;
+const QUICK_TEST = true;
 const QUICK_PER_BLOCK = 5;
 
 // 연습 자극 (huge Intact step1 / rich Replaced step7 / distractor 1개)
@@ -101,6 +101,7 @@ const sessionId = crypto.randomUUID();
 const A = {};                    // 설문 답변
 let participantCode = "";
 let subjectSaved = false;
+let hpScore = null;              // 헤드폰 체크 점수 (6문제 중 정답 수, 참고용 기록)
 const SPEAKER_SVG = '<svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>';
 
 function makeCode(){const c="ABCDEFGHJKMNPQRSTUVWXYZ23456789";let s="";for(let i=0;i<6;i++)s+=c[Math.floor(Math.random()*c.length)];return "DG-"+s;}
@@ -295,6 +296,17 @@ async function saveSubject(row){
   try{ localStorage.setItem('dg_subject_backup', JSON.stringify(row)); slog('subject saved locally'); }catch(e){}
 }
 
+// 헤드폰 체크 점수를 이미 저장된 subjects 행에 업데이트 (참고용 기록, 탈락에는 사용하지 않음)
+async function saveHpScore(){
+  if(!subjectSaved || hpScore===null) return;
+  try{
+    await sb.from('subjects')
+      .update({ headphone_score: hpScore, headphone_pass: hpScore>=HP_PASS })
+      .eq('session_id', sessionId);
+    slog('hp score saved: '+hpScore);
+  }catch(e){ /* 실패해도 본 실험 진행에는 영향 없음 */ }
+}
+
 // ============================================================
 // 헤드폰 체크 블록 생성
 // ============================================================
@@ -396,14 +408,13 @@ async function main(){
   // 이후 노드는 자격 통과자만 (excluded면 실험 종료 상태)
   const notExcluded=()=>!excluded;
 
-  // --- 4. 헤드폰 체크 (재시도 1회) ---
-  const hp1={correct:0}, hp2={correct:0};
-  let hpPass=false;
+  // --- 4. 헤드폰 체크 (통과/탈락 없음 — 안내 후 1회 실시, 점수만 기록하고 항상 통과) ---
+  const hpResult={correct:0};
 
   timeline.push({timeline:[{type:jsPsychHtmlButtonResponse,
     stimulus:`<div class="instr"><h2>헤드폰 확인 / Headphone check</h2>
-      <p>이 실험은 반드시 <b>헤드폰이나 이어폰</b>을 착용해야 합니다. / You must wear <b>headphones</b>.</p>
-      <p>다음 6개 문제에서, 잡음(쉬이익)이 <b>3번</b> 연달아 재생됩니다. 셋 다 크기는 같지만 <b>하나에만</b> 희미한 삐— 소리가 숨어 있습니다. 그게 몇 번째인지 고르세요.<br>
+      <p>이 실험은 <b>헤드폰이나 이어폰</b> 착용을 권장합니다. / We recommend wearing <b>headphones</b> for this study.</p>
+      <p>다음 6개 문제에서, 잡음(쉬이익)이 <b>3번</b> 연달아 재생됩니다. 셋 다 크기는 같지만 <b>하나에만</b> 희미한 삐— 소리가 숨어 있습니다. 그게 몇 번째인지 골라 주세요.<br>
       <span style="color:var(--muted)">You'll hear noise 3 times; all same loudness, but only one hides a faint tone. Pick which one.</span></p>
       <p style="color:var(--muted)">먼저 조절음으로 볼륨을 편안하게 맞추세요. / First set a comfortable volume with the calibration sound.</p></div>`,
     choices:["시작 / Start"]}], conditional_function:notExcluded});
@@ -423,27 +434,18 @@ async function main(){
       <span style="color:var(--muted)">Volume is set. Now 6 questions follow. In each, you'll hear 3 noises; only one hides a faint tone. Pick which one (1st, 2nd, 3rd).</span></p></div>`,
     choices:["첫 문제 시작 / Start question 1"]}], conditional_function:notExcluded});
 
-  // 시도 1
-  timeline.push({timeline:makeHPBlock(1,hp1), conditional_function:notExcluded});
-  // 시도 1 판정
-  timeline.push({timeline:[{type:jsPsychHtmlButtonResponse,
-    stimulus:()=>{ hpPass=(hp1.correct>=HP_PASS);
-      return hpPass?`<div class="instr"><h2>✓ 통과 / Passed</h2><p>확인되었습니다 (${hp1.correct}/6).</p></div>`
-        :`<div class="instr"><h2>한 번 더 / One more try</h2><p>헤드폰 사용을 확인하지 못했습니다 (${hp1.correct}/6). 양쪽 귀에 제대로 착용했는지, 볼륨과 주변 소음을 확인하고 다시 시도하세요.<br><span style="color:var(--muted)">Please check your headphones and try once more.</span></p></div>`; },
-    choices:()=>hpPass?["계속 / Continue"]:["다시 시도 / Try again"]}],
-    conditional_function:notExcluded});
-  // 시도 2 (시도1 실패 시만)
-  timeline.push({timeline:makeHPBlock(2,hp2), conditional_function:()=>notExcluded()&&!hpPass});
-  // 최종 헤드폰 판정
-  let hpFinalPass=false;
-  timeline.push({timeline:[{type:jsPsychHtmlButtonResponse,
-    stimulus:()=>{ hpFinalPass=hpPass||(hp2.correct>=HP_PASS);
-      return hpFinalPass?`<div class="instr"><h2>✓ 준비 완료 / Ready</h2><p>실험으로 넘어갑니다. / Proceeding to the experiment.</p></div>`
-        :`<div class="instr"><h2>계속할 수 없습니다 / Unable to continue</h2><p>헤드폰 사용을 확인하지 못했습니다. 이 연구는 헤드폰이 필요합니다.<br><span style="color:var(--muted)">Could not confirm headphone use. Thank you for your time.</span></p></div>`; },
-    choices:()=>hpFinalPass?["계속 / Continue"]:["닫기 / Close"]}],
-    conditional_function:notExcluded});
+  // 검사 1회 실시 — 결과와 무관하게 다음으로 진행
+  timeline.push({timeline:makeHPBlock(1,hpResult), conditional_function:notExcluded});
 
-  const canProceed=()=>notExcluded()&&hpFinalPass;
+  // 완료 안내 (통과/탈락 문구 없음, 항상 같은 다음 단계로)
+  timeline.push({timeline:[{type:jsPsychHtmlButtonResponse,
+    stimulus:`<div class="instr"><h2>확인 완료 / Check complete</h2>
+      <p>헤드폰 확인이 끝났습니다. 실험으로 넘어갑니다.<br><span style="color:var(--muted)">Headphone check complete. Proceeding to the experiment.</span></p></div>`,
+    choices:["계속 / Continue"]}], conditional_function:notExcluded,
+    on_finish:()=>{ hpScore=hpResult.correct; saveHpScore(); }});
+
+  // 헤드폰 결과와 무관하게 자격 통과자는 모두 본 실험으로 진행
+  const canProceed=()=>notExcluded();
 
   // --- 5~8: 지시 → 연습 → 본실험 → 완료 를 하나의 conditional timeline으로 묶음 ---
   const mainTimeline=[];
@@ -452,14 +454,22 @@ async function main(){
   mainTimeline.push({type:jsPsychHtmlButtonResponse,
     stimulus:`<div class="instr"><h2>Instructions</h2><ul>
       <li><b>Environment.</b> Wear headphones and stay in a quiet room.</li>
-      <li><b>Volume.</b> You'll set your volume during the practice trials. Once the main session starts, keep it unchanged.</li>
+      <li><b>Volume.</b> You'll set your volume during the practice trials. Once the main session starts, keep it unchanged. / 볼륨은 연습 단계에서 맞춥니다. 본 실험이 시작되면 바꾸지 마세요.</li>
       <li><b>Audio.</b> Each clip plays <b>only once</b>. You cannot replay or pause it.</li>
       <li><b>Response.</b> Respond as quickly as possible based on your first impression. There are no right or wrong answers.</li>
       <li><b>Duration &amp; breaks.</b> About 740 trials (40–60 min), with three short self-paced breaks.</li>
-      </ul><p style="text-align:center">First, let's set your volume using a few practice trials.<br></p></div>`,
-    choices:["Start Practice"]});
+      </ul><p style="text-align:center">First, let's set your volume and do a few practice trials.<br>먼저 볼륨을 맞추고 연습을 진행하겠습니다.</p></div>`,
+    choices:["Next / 다음"]});
 
- 
+  // 5-b. 볼륨 재조정 안내 (헤드폰 체크와 본 실험은 적정 음량이 다름)
+  mainTimeline.push({type:jsPsychHtmlButtonResponse,
+    stimulus:`<div class="instr"><h2>볼륨 조절 / Adjust your volume</h2>
+      <p>헤드폰 검사음은 미세한 소리를 찾느라 볼륨을 높였을 수 있습니다. 이제부터는 <b>사람 목소리</b>를 듣게 됩니다.<br>
+      <span style="color:var(--muted)">The headphone test may have required a higher volume. From now on, you'll hear <b>speech</b>.</span></p>
+      <p>다음 연습 소리를 들으며 <b>목소리가 편안하고 또렷하게</b> 들리도록 볼륨을 맞추세요. 한번 정한 뒤에는 본 실험 동안 바꾸지 마세요.<br>
+      <span style="color:var(--muted)">Use the next practice sounds to set a <b>comfortable, clear</b> level for speech. Keep it fixed during the main experiment.</span></p></div>`,
+    choices:["연습 시작 / Start practice"]});
+
   // 6. 연습 (저장 안 함)
   PRACTICE.forEach((p,pi)=>{
     const swap=Math.random()<0.5; const left=swap?p.opt2:p.opt1, right=swap?p.opt1:p.opt2;
@@ -471,10 +481,11 @@ async function main(){
     );
   });
   mainTimeline.push({type:jsPsychHtmlButtonResponse,
-    stimulus:`<div class="instr"><h2>Practice complete</h2>
+    stimulus:`<div class="instr"><h2>Practice complete / 연습 완료</h2>
+      <p>이제 본 실험을 시작합니다. 각 소리는 <b>한 번만</b> 재생되니 첫 인상에 따라 응답하세요.<br>
       <span style="color:var(--muted)">The real experiment begins now. Each sound plays once — respond on first impression.</span></p>
-      <p><span style="color:var(--muted)">Please keep your volume as it is now.</span></p></div>`,
-    choices:["Begin the experiment"]});
+      <p><b>볼륨은 지금 상태로 유지해 주세요.</b> / <span style="color:var(--muted)">Please keep your volume as it is now.</span></p></div>`,
+    choices:["Begin the experiment / 시작"]});
 
   // 7. 본 실험
   const totalTrials=blocks.flat().length;
