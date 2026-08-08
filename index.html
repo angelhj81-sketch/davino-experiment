@@ -323,26 +323,43 @@ async function saveSubject(row){
   try{ localStorage.setItem('dg_subject_backup', JSON.stringify(row)); slog('subject saved locally'); }catch(e){}
 }
 
-// 헤드폰 체크 점수를 이미 저장된 subjects 행에 업데이트 (참고용 기록, 탈락에는 사용하지 않음)
-async function saveHpScore(){
-  if(!subjectSaved || hpScore===null) return;
-  try{
-    await sb.from('subjects')
-      .update({ headphone_score: hpScore, headphone_pass: hpScore>=HP_PASS })
-      .eq('session_id', sessionId);
-    slog('hp score saved: '+hpScore);
-  }catch(e){ /* 실패해도 본 실험 진행에는 영향 없음 */ }
+// subjectSaved가 될 때까지 잠깐 기다리는 헬퍼 (설문 insert가 백그라운드라 시점이 어긋날 수 있음)
+async function waitForSubject(maxMs){
+  const start=Date.now();
+  while(!subjectSaved && Date.now()-start<maxMs){ await new Promise(r=>setTimeout(r,300)); }
+  return subjectSaved;
 }
 
-// 영어 변별 과제 점수를 subjects 행에 업데이트 (참고용 기록, 종료에는 사용하지 않음)
+// 헤드폰 체크 점수를 이미 저장된 subjects 행에 업데이트 (참고용 기록)
+async function saveHpScore(){
+  if(hpScore===null) return;
+  await waitForSubject(8000);   // 설문 저장이 끝나길 기다림
+  for(let attempt=1; attempt<=4; attempt++){
+    try{
+      const {error}=await sb.from('subjects')
+        .update({ headphone_score: hpScore, headphone_pass: hpScore>=HP_PASS })
+        .eq('session_id', sessionId);
+      if(!error){ slog('hp saved: '+hpScore); return; }
+      else { slog('hp save err: '+(error.message||error.code||'?')); throw error; }
+    }catch(e){ await new Promise(r=>setTimeout(r,700*attempt)); }
+  }
+  slog('hp save FAILED');
+}
+
+// 영어 변별 과제 점수를 subjects 행에 업데이트 (참고용 기록)
 async function saveProfScore(){
-  if(!subjectSaved || profTaskScore===null) return;
-  try{
-    await sb.from('subjects')
-      .update({ prof_task_score: profTaskScore, prof_target: profTargetScore })
-      .eq('session_id', sessionId);
-    slog('prof task score saved: '+profTaskScore);
-  }catch(e){ /* 실패해도 진행에 영향 없음 */ }
+  if(profTaskScore===null) return;
+  await waitForSubject(8000);
+  for(let attempt=1; attempt<=4; attempt++){
+    try{
+      const {error}=await sb.from('subjects')
+        .update({ prof_task_score: profTaskScore, prof_target: profTargetScore })
+        .eq('session_id', sessionId);
+      if(!error){ slog('prof saved: '+profTaskScore); return; }
+      else { slog('prof save err: '+(error.message||error.code||'?')); throw error; }
+    }catch(e){ await new Promise(r=>setTimeout(r,700*attempt)); }
+  }
+  slog('prof save FAILED');
 }
 
 // 영어 변별 과제 블록 생성 (문항 순서 랜덤화, 각 문항의 개별 응답도 responses에 기록)
@@ -359,7 +376,7 @@ function makeEngTaskBlock(){
       stimulus:`<div class="instr" style="text-align:center">
         <div class="listen-label">Question ${i+1} / ${total}</div>
         <div class="prof-word" style="font-size:34px;font-weight:700;margin:20px 0 6px;letter-spacing:1px">${it.prompt}</div>
-        <p style="color:var(--muted);margin-top:0">Listen to the <b>bold / underlined</b> sound above,<br>then find which audio contains the same sound.</p>
+        <p style="color:var(--muted);margin-top:0">Think of the sound the <b>bold / underlined</b> letters make,<br>then find which audio contains that same sound.</p>
         <div style="display:flex;gap:16px;justify-content:center;margin:26px 0 8px">
           <button type="button" id="playA" class="audio-play-btn">▶ Audio A</button>
           <button type="button" id="playB" class="audio-play-btn">▶ Audio B</button>
