@@ -225,12 +225,22 @@ const surveyHTML = `<div class="survey">
       <div id="engscore-sub" class="subfield hidden">
         <label>Score / 점수 <span style="color:var(--muted)">(e.g. TOEIC 920, IELTS 7.0, OPIc AL)</span></label>
         <input type="text" id="engScore" placeholder="e.g. 920"></div></div>
-    <div class="q"><label class="qlabel">4. Have you ever lived in an English-speaking country (US, UK, Canada, Australia, etc.) for more than 6 months?</label>
-      <div class="opts"><div class="opt" data-q="abroad" data-v="No">No</div><div class="opt" data-q="abroad" data-v="Yes">Yes</div></div>
+    <div class="q"><label class="qlabel">4. Have you ever lived in an English-speaking country (US, UK, Canada, Australia, etc.) for more than 6 months?<br><span style="font-weight:400;color:var(--muted)">영어권 국가(미국, 영국, 캐나다, 호주 등)에 6개월 이상 거주한 적이 있나요?</span></label>
+      <div class="opts"><div class="opt" data-q="abroad" data-v="No">아니오 / No</div><div class="opt" data-q="abroad" data-v="Yes">예 / Yes</div></div>
       <div id="abroad-sub" class="subfield hidden">
-        <div class="row"><label>Country</label><input type="text" id="abroadCountry" placeholder="e.g. Canada"></div>
-        <div class="row"><label>Duration of stay</label><div class="inline"><input type="number" id="abroadMonths" min="0" placeholder="e.g. 8"><span style="color:var(--muted);font-size:14px">months</span></div></div></div>
-      <p class="hint">For research records only — does not affect eligibility.</p></div>
+        <div class="row"><label>Country / 국가</label><input type="text" id="abroadCountry" placeholder="e.g. Canada"></div>
+        <div class="row"><label>Duration of stay / 거주 기간</label><div class="inline"><input type="number" id="abroadMonths" min="0" placeholder="e.g. 8"><span style="color:var(--muted);font-size:14px">months / 개월</span></div></div></div>
+      <p class="hint">For research records only — does not affect eligibility. / 연구 기록용이며 참여 자격에 영향을 주지 않습니다.</p></div>
+    <div class="q"><label class="qlabel">5. Are you a 3rd-year or higher undergraduate in an English-related major (English Literature, English Education, etc.)?<br><span style="font-weight:400;color:var(--muted)">영어 관련 전공(영어영문학, 영어교육학 등) 학부 3학년 이상인가요?</span></label>
+      <div class="opts"><div class="opt" data-q="engmajor" data-v="Yes">예 / Yes</div><div class="opt" data-q="engmajor" data-v="No">아니오 / No</div></div>
+      <div id="engmajor-sub" class="subfield hidden">
+        <div class="row"><label>Major / 전공</label><input type="text" id="majorName" placeholder="e.g. English Education / 영어교육학"></div>
+        <div class="row"><label>Year / 학년</label><div class="inline"><input type="number" id="majorYear" min="1" max="6" placeholder="e.g. 3"><span style="color:var(--muted);font-size:14px">학년</span></div></div></div></div>
+    <div class="q"><label class="qlabel">6. Are you engaged in English conversation or pronunciation teaching (excluding exam-prep English)?<br><span style="font-weight:400;color:var(--muted)">입시 영어를 제외한 회화·발음 관련 영어 교육에 종사하고 있나요?</span></label>
+      <div class="opts"><div class="opt" data-q="engteacher" data-v="Yes">예 / Yes</div><div class="opt" data-q="engteacher" data-v="No">아니오 / No</div></div>
+      <div id="engteacher-sub" class="subfield hidden">
+        <div class="row"><label>Duration / 종사 기간</label><div class="inline"><input type="number" id="teacherDur" min="0" step="0.5" placeholder="e.g. 2"><span style="color:var(--muted);font-size:14px">years / 년</span></div></div></div>
+      <p class="hint">For research records only — does not affect eligibility. / 연구 기록용이며 참여 자격에 영향을 주지 않습니다.</p></div>
   </div></div>
   <div id="english-block" class="hidden"><div style="border-top:1px solid var(--line);padding-top:18px;">
     <div class="q"><label class="qlabel">3. What is your country of origin / citizenship?</label><input type="text" id="origin" placeholder="e.g. United States"></div>
@@ -258,6 +268,8 @@ function bindSurvey(){
       if(q==='music')document.getElementById('music-sub').classList.toggle('hidden',A.music!=='Yes');
       if(q==='abroad')document.getElementById('abroad-sub').classList.toggle('hidden',A.abroad!=='Yes');
       if(q==='otherlangs')document.getElementById('langs-sub').classList.toggle('hidden',A.otherlangs!=='Yes');
+      if(q==='engmajor')document.getElementById('engmajor-sub').classList.toggle('hidden',A.engmajor!=='Yes');
+      if(q==='engteacher')document.getElementById('engteacher-sub').classList.toggle('hidden',A.engteacher!=='Yes');
       // 영어시험 종류: None/기타가 아니면 점수 입력칸 표시
       if(q==='engtest'){
         const showScore = (A.engtest!=='None');
@@ -266,7 +278,7 @@ function bindSurvey(){
     });
   });
   // 입력칸: 값이 바뀔 때마다 A에 저장 (화면이 사라진 뒤에도 값 유지)
-  const textIds=['age','musicYears','engScore','abroadCountry','abroadMonths','origin','koreaDur','otherLangsText'];
+  const textIds=['age','musicYears','engScore','abroadCountry','abroadMonths','origin','koreaDur','otherLangsText','majorName','majorYear','teacherDur'];
   textIds.forEach(id=>{
     const el=document.getElementById(id);
     if(el)el.addEventListener('input',()=>{ A['_'+id]=el.value; });
@@ -286,6 +298,8 @@ function processSurvey(){
   if(A.l1==='Korean'){
     if(!A.engtest)return{ok:false,msg:"Please answer question 3 (English proficiency test)."};
     if(!A.abroad)return{ok:false,msg:"Please answer question 4 (living abroad)."};
+    if(!A.engmajor)return{ok:false,msg:"Please answer question 5 (English-related major)."};
+    if(!A.engteacher)return{ok:false,msg:"Please answer question 6 (English teaching)."};
   }
   if(A.l1==='English'){
     if(!(A._origin||'').trim())return{ok:false,msg:"Please enter your country of origin."};
@@ -307,6 +321,11 @@ function processSurvey(){
     music_years:A.music==='Yes'?parseFloat(A._musicYears)||null:null,
     eng_test_type:A.l1==='Korean'?(A.engtest||null):null,
     eng_test_score:(A.l1==='Korean'&&A.engtest&&A.engtest!=='None')?(A._engScore||'').trim()||null:null,
+    eng_major:A.l1==='Korean'?(A.engmajor==='Yes'):null,
+    eng_major_name:(A.l1==='Korean'&&A.engmajor==='Yes')?(A._majorName||'').trim()||null:null,
+    eng_major_year:(A.l1==='Korean'&&A.engmajor==='Yes'&&A._majorYear)?parseInt(A._majorYear,10):null,
+    eng_teacher:A.l1==='Korean'?(A.engteacher==='Yes'):null,
+    eng_teacher_years:(A.l1==='Korean'&&A.engteacher==='Yes'&&A._teacherDur)?parseFloat(A._teacherDur):null,
     lived_abroad:A.l1==='Korean'?(A.abroad==='Yes'):null,
     abroad_country:A.abroad==='Yes'?(A._abroadCountry||'').trim()||null:null,
     abroad_months:A.abroad==='Yes'?parseFloat(A._abroadMonths)||null:null,
