@@ -95,7 +95,7 @@ const HP_MAX_ATTEMPTS = 2;
 const SAVE_BATCH = 20;      // N trial마다 저장
 
 // ▼ 테스트 스위치: true=짧게(블록당 소수), false=740 전체
-const QUICK_TEST = false;
+const QUICK_TEST = true;
 const QUICK_PER_BLOCK = 5;
 
 // 연습 자극 (huge Intact step1 / rich Replaced step7 / distractor 1개)
@@ -105,19 +105,27 @@ const PRACTICE = [
   {audio:"distractor_001.mp3", question:"How was the weather?", opt1:"Bad", opt2:"Nice", correct:"Nice"},
 ];
 
-// 영어 변별 과제 (한국어 L1 참가자만). 기준 단어를 화면에 글자로 보여주고,
-// 강조된 소리와 같은 소리가 든 보기를 고름. 점수만 기록(종료 없음).
-// prompt_html: 기준 단어(강조 <b>표시). answer: 정답 오디오(1 또는 2).
+// 영어 변별 과제 (한국어 L1 참가자만, 본 실험 후 실시). 기준 단어를 화면에 글자로 보여주고,
+// 강조된 부분과 같은 소리가 든 보기를 고름. 점수만 기록(종료 없음).
+// prompt: 기준 단어(강조 <b>표시). answer: 정답 오디오(1=A / 2=B).
+// type: target_dz(z/dʒ 표적) / filler_ssh(s/ʃ) / filler_stq(s/tʃ)
 const ENG_BASE = "eng_task/";
 const ENG_TASK = [
-  {id:1, prompt:'<b>r</b>ight', focus:'the sound spelled "r"', a1:"q1_opt1_rake.wav", a2:"q1_opt2_light.wav", answer:1, type:"filler_LR"},
-  {id:2, prompt:'<b>z</b>ip',    focus:'the sound spelled "z"', a1:"q2_opt1_zone.wav", a2:"q2_opt2_jeep.wav", answer:1, type:"target_z"},
-  {id:3, prompt:'<b>f</b>an',    focus:'the sound spelled "f"', a1:"q3_opt1_face.wav", a2:"q3_opt2_pan.wav",  answer:1, type:"filler_PF"},
-  {id:4, prompt:'s<b>i</b>t',    focus:'the vowel sound',        a1:"q4_opt1_hid.wav",  a2:"q4_opt2_team.wav", answer:1, type:"filler_vowel_I"},
-  {id:5, prompt:'<b>v</b>an',    focus:'the sound spelled "v"', a1:"q5_opt1_ban.wav",  a2:"q5_opt2_vote.wav", answer:2, type:"filler_BV"},
-  {id:6, prompt:'<b>j</b>eep',   focus:'the sound spelled "j"', a1:"q6_opt1_zest.wav", a2:"q6_opt2_jump.wav", answer:2, type:"target_dz"},
-  {id:7, prompt:'h<b>a</b>d',    focus:'the vowel sound',        a1:"q7_opt1_pet.wav",  a2:"q7_opt2_mass.wav", answer:2, type:"filler_vowel_AE"},
-  {id:8, prompt:'<b>th</b>ink',  focus:'the sound spelled "th"',a1:"q8_opt1_sink.wav", a2:"q8_opt2_three.wav",answer:2, type:"filler_TH"},
+  {id:1,  prompt:'<b>j</b>eep',      a1:"q1_opt1_zero.wav",     a2:"q1_opt2_jump.wav",    answer:2, type:"target_dz"},
+  {id:2,  prompt:'<b>z</b>ip',       a1:"q2_opt1_zone.wav",     a2:"q2_opt2_job.wav",     answer:1, type:"target_dz"},
+  {id:3,  prompt:'re<b>g</b>ion',    a1:"q3_opt2_agent.wav",    a2:"q3_opt1_desert.wav",  answer:1, type:"target_dz"},
+  {id:4,  prompt:'lar<b>g</b>er',    a1:"q4_opt1_user.wav",     a2:"q4_opt2_manager.wav", answer:2, type:"target_dz"},
+  {id:5,  prompt:'sausa<b>ge</b>',   a1:"q5_opt1_gaze.wav",     a2:"q5_opt2_gauge.wav",   answer:2, type:"target_dz"},
+  {id:6,  prompt:'pha<b>se</b>',     a1:"q6_opt1_rose.wav",     a2:"q6_opt2_badge.wav",   answer:1, type:"target_dz"},
+  {id:7,  prompt:'<b>sh</b>ade',     a1:"q7_opt1_save.wav",     a2:"q7_opt2_shave.wav",   answer:2, type:"filler_ssh"},
+  {id:8,  prompt:'profe<b>ss</b>or', a1:"q8_opt1_officer.wav",  a2:"q8_opt2_washer.wav",  answer:1, type:"filler_ssh"},
+  {id:9,  prompt:'ba<b>sh</b>',      a1:"q9_opt1_mass.wav",     a2:"q9_opt2_mash.wav",    answer:2, type:"filler_ssh"},
+  {id:10, prompt:'<b>s</b>ame',      a1:"q10_opt1_sign.wav",    a2:"q10_opt2_charm.wav",  answer:1, type:"filler_stq"},
+  {id:11, prompt:'<b>ch</b>ase',     a1:"q11_opt1_safe.wav",    a2:"q11_opt2_cheat.wav",  answer:2, type:"filler_stq"},
+  {id:12, prompt:'kit<b>ch</b>en',   a1:"q12_opt1_baseball.wav",a2:"q12_opt2_catcher.wav",answer:2, type:"filler_stq"},
+  {id:13, prompt:'in<b>s</b>ight',   a1:"q13_opt1_inside.wav",  a2:"q13_opt2_teaching.wav",answer:1, type:"filler_stq"},
+  {id:14, prompt:'bu<b>s</b>',       a1:"q14_opt1_miss.wav",    a2:"q14_opt2_batch.wav",  answer:1, type:"filler_stq"},
+  {id:15, prompt:'lun<b>ch</b>',     a1:"q15_opt1_base.wav",    a2:"q15_opt2_preach.wav", answer:2, type:"filler_stq"},
 ];
 
 // ---------- 상태 ----------
@@ -555,23 +563,8 @@ async function main(){
     choices:["계속 / Continue"],
     on_finish:()=>{ hpScore=hpResult.correct; saveHpScore(); }}], conditional_function:notExcluded});
 
-  // --- 4-b. 영어 변별 과제 (한국어 L1 참가자만, 점수만 기록) ---
-  const isKorean=()=>notExcluded() && A.l1==='Korean';
+  // --- 소리 맞추기 과제는 본 실험 종료 후 실시 (자격 통과자 전원, 아래 mainTimeline 끝부분에 배치) ---
   const engBlock=makeEngTaskBlock();
-  // 안내
-  timeline.push({timeline:[{type:jsPsychHtmlButtonResponse,
-    stimulus:`<div class="instr"><h2>English pronunciation task / 영어 발음 과제</h2>
-      <p>이어지는 과제는 <b>영어 발음 숙련도</b>를 알아보기 위한 것입니다 (${ENG_TASK.length}문제).<br>
-      <span style="color:var(--muted)">The following is a short English pronunciation task (${ENG_TASK.length} questions).</span></p>
-      <p>화면 상단에 제시되는 단어의 <b>굵고 밑줄 친 부분</b>의 발음을 떠올려 보세요. 이후 그 아래의 <b>Audio A</b>와 <b>Audio B</b>를 자유롭게 들어본 뒤, <b>강조된 부분과 같은 발음</b>이 포함된 것을 고르세요.<br>
-      <span style="color:var(--muted)">A word will appear with part of it in <b>bold and underlined</b>. Play Audio A and Audio B as many times as you like, then choose the one that contains the <b>same sound</b> as the highlighted part.</span></p></div>`,
-    choices:["시작 / Start"]}], conditional_function:isKorean});
-  // 과제 문항
-  timeline.push({timeline:engBlock.tl, conditional_function:isKorean});
-  // 완료 (여기서부터는 영어만 — 본 실험 언어 모드 유지)
-  timeline.push({timeline:[{type:jsPsychHtmlButtonResponse,
-    stimulus:`<div class="instr"><h2>Well done!</h2><p>That completes the warm-up tasks. The main study will now begin.</p></div>`,
-    choices:["Continue"]}], conditional_function:isKorean});
 
   // 헤드폰 결과와 무관하게 자격 통과자는 모두 본 실험으로 진행
   const canProceed=()=>notExcluded();
@@ -654,6 +647,15 @@ async function main(){
         choices:["Continue"], on_load:()=>flushResponses(true)});
     }
   });
+
+  // --- 소리 맞추기 과제 (본 실험 종료 후, 자격 통과자 전원, 점수만 기록) ---
+  const engAnnounce={type:jsPsychHtmlButtonResponse,
+    stimulus:`<div class="instr"><h2>One last task</h2>
+      <p>The main experiment is complete. Before you finish, here is a short <b>sound-matching task</b> (${ENG_TASK.length} questions).</p>
+      <p>A word will appear at the top with part of it in <b>bold and underlined</b>. Think of the sound those letters make. Then play <b>Audio A</b> and <b>Audio B</b> — as many times as you like — and choose the one that contains the <b>same sound</b>.</p></div>`,
+    choices:["Start"]};
+  // 안내 + 문항들을 하나의 timeline으로 묶음 (본 실험까지 온 참가자 전원)
+  mainTimeline.push({timeline:[engAnnounce, ...engBlock.tl]});
 
   // 8. 완료 코드
   mainTimeline.push({type:jsPsychHtmlButtonResponse,
