@@ -478,6 +478,17 @@ function makeHPBlock(attemptNum, scoreObj){
 async function main(){
   const isMobile=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
+  // 창을 갑자기 닫을 때 남은 응답을 localStorage에 백업 (최후 안전망)
+  window.addEventListener('beforeunload', function(){
+    if(responseBuffer.length>0){
+      try{
+        const bak=JSON.parse(localStorage.getItem('dg_backup')||'[]');
+        bak.push(...responseBuffer);
+        localStorage.setItem('dg_backup', JSON.stringify(bak));
+      }catch(e){}
+    }
+  });
+
   const jsPsych=initJsPsych({
     on_finish: async ()=>{ await flushResponses(true); }
   });
@@ -676,7 +687,29 @@ async function main(){
   // 안내 + 문항들을 하나의 timeline으로 묶음 (본 실험까지 온 참가자 전원)
   mainTimeline.push({timeline:[engAnnounce, ...engBlock.tl]});
 
-  // 8. 완료 코드
+  // 8. 저장 완료 대기 화면 (마지막 배치가 확실히 저장될 때까지 기다림 — 데이터 누락 방지)
+  mainTimeline.push({type:jsPsychHtmlButtonResponse,
+    stimulus:`<div class="instr" style="text-align:center"><h2>Saving your responses…</h2>
+      <p>응답을 저장하고 있습니다. 잠시만 기다려 주세요.<br>
+      <span style="color:var(--muted)">Please wait a moment while we save your responses.</span></p>
+      <p style="color:var(--muted);font-size:14px">이 화면은 저장이 끝나면 자동으로 넘어갑니다.<br>This screen will advance automatically when saving is complete.</p></div>`,
+    choices:[],  // 버튼 없음 — 저장 끝나면 자동 진행
+    trial_duration:null,
+    on_load: function(){
+      // trial이 확실히 로드된 뒤 저장 시작 (타이밍 안전장치)
+      setTimeout(async function(){
+        const start=Date.now();
+        while(responseBuffer.length>0 && Date.now()-start<15000){
+          await flushResponses(true);
+          if(responseBuffer.length>0) await new Promise(r=>setTimeout(r,500));
+        }
+        slog('final flush done, remaining: '+responseBuffer.length);
+        jsPsych.finishTrial();  // 저장 끝나면 다음 화면으로
+      }, 100);
+    }
+  });
+
+  // 9. 완료 코드
   mainTimeline.push({type:jsPsychHtmlButtonResponse,
     stimulus:()=>`<div class="instr" style="text-align:center"><h2>All done — thank you! 🎧</h2>
       <p>실험을 모두 마쳤습니다. 보상을 받으려면 아래 <b>완료 코드</b>를 폼에 제출해 주세요.<br>
