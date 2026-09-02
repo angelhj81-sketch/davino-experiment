@@ -729,6 +729,20 @@ async function main(){
       <p style="color:var(--muted);font-size:13px">코드를 복사해 두세요. 이 창을 닫으면 다시 볼 수 없습니다.<br>Please copy your code — it won't be shown again after you close this window.</p></div>`,
     choices:["완료 / Finish"], on_load:()=>flushResponses(true)});
 
+  // 10. 종료 안내 화면 (하얀 화면 대신 명확한 종료 메시지)
+  mainTimeline.push({type:jsPsychHtmlButtonResponse,
+    stimulus:`<div class="instr" style="text-align:center">
+      <h2>You're all done</h2>
+      <p>Thank you very much for taking part in this study. 🙏<br>
+      <span style="color:var(--muted)">실험에 참여해 주셔서 진심으로 감사합니다.</span></p>
+      <p>If you haven't submitted the reward form yet, please use the link below.<br>
+      <span style="color:var(--muted)">보상 신청 폼을 아직 제출하지 않으셨다면, 아래 링크에서 제출해 주세요.</span></p>
+      <div class="code-box">${participantCode}</div>
+      <p><a href="${REWARD_FORM_URL}" target="_blank" style="color:var(--accent);font-weight:600;font-size:17px">▶ Open reward form / 보상 신청 폼 열기</a></p>
+      <p style="margin-top:24px;color:var(--muted)">Once you've submitted the form, you may close this window.<br>
+      폼 제출을 마치셨다면 이제 이 창을 닫으셔도 됩니다.</p></div>`,
+    choices:[]});   // 버튼 없음 — 마지막 화면으로 유지
+
   // 전체를 하나의 conditional timeline으로 (자격통과 + 헤드폰통과자만)
   timeline.push({ timeline:mainTimeline, conditional_function:canProceed });
 
