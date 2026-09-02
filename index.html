@@ -134,8 +134,9 @@ const A = {};                    // 설문 답변
 let participantCode = "";
 let subjectSaved = false;
 let hpScore = null;              // 헤드폰 체크 점수 (6문제 중 정답 수, 참고용 기록)
-let profTaskScore = null;         // 영어 변별 과제 점수 (8문제 중 정답 수)
-let profTargetScore = null;       // 그중 표적(z/dz) 정답 수 (0~2)
+let profTaskScore = null;         // 영어 변별 과제 총점 (15문제 중 정답 수)
+let profTargetScore = null;       // z/dʒ 구분 정답 수 (0~6)
+let profStqScore = null;          // s/tʃ 구분 정답 수 (0~6)
 const SPEAKER_SVG = '<svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>';
 
 function makeCode(){const c="ABCDEFGHJKMNPQRSTUVWXYZ23456789";let s="";for(let i=0;i<6;i++)s+=c[Math.floor(Math.random()*c.length)];return "DG-"+s;}
@@ -380,7 +381,7 @@ async function saveProfScore(){
   for(let attempt=1; attempt<=4; attempt++){
     try{
       const {error}=await sb.from('subjects')
-        .update({ prof_task_score: profTaskScore, prof_target: profTargetScore })
+        .update({ prof_task_score: profTaskScore, prof_target: profTargetScore, prof_stq: profStqScore })
         .eq('session_id', sessionId);
       if(!error){ slog('prof saved: '+profTaskScore); return; }
       else { slog('prof save err: '+(error.message||error.code||'?')); throw error; }
@@ -393,7 +394,7 @@ async function saveProfScore(){
 function makeEngTaskBlock(){
   const tl=[];
   const items=shuffle(ENG_TASK);
-  const score={correct:0, target:0};
+  const score={correct:0, target_dz:0, stq:0};
   const total=items.length;
   items.forEach((it,i)=>{
     const isLast=(i===total-1);
@@ -424,17 +425,17 @@ function makeEngTaskBlock(){
         const chosen=d.response+1;   // 0,1 → A(1),B(2)
         d.chosen=chosen;
         d.is_correct=(chosen===it.answer);
-        if(d.is_correct){ score.correct++; if(it.type.startsWith('target')) score.target++; }
-        // 개별 응답 기록
-        queueResponse({ session_id:sessionId, trial_index:-1, block:0,
-          item_id:'prof_'+it.id, type:'ProfTask', context_type:it.type,
-          context_word:null, place:null, voicing:null, step:null, repetition:null,
-          audio_file:it.a1+'|'+it.a2, option_left:'A', option_right:'B',
-          response:(chosen===1?'A':'B'), correct_answer:(it.answer===1?'A':'B'),
-          is_correct:d.is_correct, rt:d.rt });
+        // 유형별 정답 집계 (z/dʒ 와 s/tʃ 를 따로 셈). responses에는 저장하지 않음(점수만 필요).
+        if(d.is_correct){
+          score.correct++;
+          if(it.type==='target_dz') score.target_dz++;
+          else if(it.type==='filler_stq') score.stq++;
+        }
         // 마지막 문항이 끝나면 총점 저장 (여기서 저장해야 확실히 실행됨)
         if(isLast){
-          profTaskScore=score.correct; profTargetScore=score.target;
+          profTaskScore=score.correct;
+          profTargetScore=score.target_dz;   // z/dʒ 정답 수 (0~6)
+          profStqScore=score.stq;            // s/tʃ 정답 수 (0~6)
           saveProfScore();
         }
       }
@@ -683,29 +684,36 @@ async function main(){
     stimulus:`<div class="instr"><h2>One last task</h2>
       <p>The main experiment is complete. Before you finish, here is a short <b>sound-matching task</b> (${ENG_TASK.length} questions).</p>
       <p>A word will appear at the top with part of it in <b>bold and underlined</b>. Think of the sound those letters make. Then play <b>Audio A</b> and <b>Audio B</b> — as many times as you like — and choose the one that contains the <b>same sound</b>.</p></div>`,
-    choices:["Start"]};
+    choices:["Start"],
+    on_load:()=>flushResponses(true)};  // 영어 과제 전에 본 실험 응답을 모두 저장
   // 안내 + 문항들을 하나의 timeline으로 묶음 (본 실험까지 온 참가자 전원)
   mainTimeline.push({timeline:[engAnnounce, ...engBlock.tl]});
 
   // 8. 저장 완료 대기 화면 (마지막 배치가 확실히 저장될 때까지 기다림 — 데이터 누락 방지)
+  //    저장이 끝나면 버튼이 활성화됨. jsPsych.finishTrial() 대신 버튼 방식이라 타이밍이 안정적.
   mainTimeline.push({type:jsPsychHtmlButtonResponse,
     stimulus:`<div class="instr" style="text-align:center"><h2>Saving your responses…</h2>
       <p>응답을 저장하고 있습니다. 잠시만 기다려 주세요.<br>
       <span style="color:var(--muted)">Please wait a moment while we save your responses.</span></p>
-      <p style="color:var(--muted);font-size:14px">이 화면은 저장이 끝나면 자동으로 넘어갑니다.<br>This screen will advance automatically when saving is complete.</p></div>`,
-    choices:[],  // 버튼 없음 — 저장 끝나면 자동 진행
-    trial_duration:null,
+      <p id="saveStatus" style="color:var(--muted);font-size:14px">저장 중… / Saving…</p></div>`,
+    choices:["계속 / Continue"],
     on_load: function(){
-      // trial이 확실히 로드된 뒤 저장 시작 (타이밍 안전장치)
-      setTimeout(async function(){
+      // "계속" 버튼을 처음엔 숨김 → 저장이 다 끝나면 보여줌
+      const btnWrap=document.querySelector('#jspsych-html-button-response-btngroup');
+      if(btnWrap) btnWrap.style.visibility='hidden';
+      (async function(){
         const start=Date.now();
-        while(responseBuffer.length>0 && Date.now()-start<15000){
+        // 남은 응답을 모두 저장할 때까지 반복 (최대 20초)
+        while(responseBuffer.length>0 && Date.now()-start<20000){
           await flushResponses(true);
           if(responseBuffer.length>0) await new Promise(r=>setTimeout(r,500));
         }
         slog('final flush done, remaining: '+responseBuffer.length);
-        jsPsych.finishTrial();  // 저장 끝나면 다음 화면으로
-      }, 100);
+        // 저장 완료 표시 + 버튼 보이기
+        const st=document.getElementById('saveStatus');
+        if(st){ st.textContent='저장 완료 · Saved ✓'; st.style.color='var(--ok)'; }
+        if(btnWrap) btnWrap.style.visibility='visible';
+      })();
     }
   });
 
