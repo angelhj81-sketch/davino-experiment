@@ -683,7 +683,7 @@ async function main(){
   const engAnnounce={type:jsPsychHtmlButtonResponse,
     stimulus:`<div class="instr"><h2>One last task</h2>
       <p>The main experiment is complete. Before you finish, here is a short <b>sound-matching task</b> (${ENG_TASK.length} questions).</p>
-      <p>A word will appear at the top with part of it in <b>bold and underlined</b>. Think of the sound those letters make. Then play <b>Audio A</b> and <b>Audio B</b> — as many times as you like — and choose the one that contains the <b>same sound</b>.</p></div>`,
+      <p>A word will appear at the top with part of it in <b>bold and underlined</b>. Read the word aloud or say it in your head, then think of the sound that the <b>bold, underlined</b> letters make. Then play <b>Audio A</b> and <b>Audio B</b> — as many times as you like — and choose the one that contains the <b>same sound</b>.</p></div>`,
     choices:["Start"],
     on_load:()=>flushResponses(true)};  // 영어 과제 전에 본 실험 응답을 모두 저장
   // 안내 + 문항들을 하나의 timeline으로 묶음 (본 실험까지 온 참가자 전원)
