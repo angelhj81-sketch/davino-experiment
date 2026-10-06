@@ -521,7 +521,7 @@ async function main(){
     message:"<p style='color:#6b7280'>Loading… 잠시만 기다려 주세요.</p>", max_load_time:60000,
     error_message:"<p>일부 파일을 불러오지 못했습니다. 새로고침 해주세요.<br>Some files failed to load. Please refresh.</p>"});
 
-  // --- 1. 동의서 (설명문 내용 + 온라인 체크박스 방식 동의 취득) ---
+  // --- 1. 동의서 (설명문 원문 전체, 항목별 한/영 교차 표기 + 온라인 체크박스 동의) ---
   timeline.push({type:jsPsychHtmlButtonResponse,
     stimulus:`<div>
       <h2 style="text-align:center;color:var(--accent);margin-bottom:2px">Participant Information &amp; Consent</h2>
@@ -530,43 +530,105 @@ async function main(){
         Lexically Mediated Compensation for Coarticulation in L1 and L2 Speech Perception:<br>
         The Impact of Preceding Sibilants on a /da/-/ga/ Continuum</p>
       <div class="consent-body" id="consentBody">
-        <p><b>1. 연구 목적 / Purpose</b><br>
-        본 연구는 선행 어휘의 끝소리가 이어지는 음성 지각에 미치는 영향을 한국어 모국어 화자와 영어 모국어 화자 간에 비교 분석하는 것을 목적으로 합니다.<br>
-        This study compares how the final sound of a preceding word influences speech perception between native Korean and native English listeners.</p>
-
-        <p><b>2. 참여 대상 및 절차 / Participants &amp; Procedure</b><br>
-        본 실험은 웹 기반 온라인 실험으로, 참가자는 본인의 컴퓨터와 헤드폰을 활용하여 참여하며 전체 소요 시간은 약 40분~50분입니다. 절차는 (1) 동의 취득 → (2) 사전검사(국적·나이·성별·모국어 등 기입 및 헤드폰 스크리닝) → (3) 본 실험(청각 자극을 듣고 davino/gavino 중 선택, 중간 휴식 3회 포함) → (4) 사후 설문 순으로 진행됩니다.<br>
-        This is a fully web-based experiment using your own computer and headphones, lasting about 40–50 minutes: (1) consent, (2) pre-screening (nationality, age, gender, native language, etc. plus a headphone check), (3) the main task (choosing "davino" or "gavino" after each sound, with three short breaks), and (4) a brief post-experiment survey.</p>
-
-        <p><b>3. 위험과 이익 / Risks &amp; Benefits</b><br>
-        헤드폰 착용 및 화면 주시로 인한 경미한 피로감 외에 예상되는 위험은 없으며(최소위험 이하), 음량은 본인이 자유롭게 조절할 수 있습니다. 직접적인 금전적/의학적 이득은 보상 외에 없습니다.<br>
-        Aside from mild fatigue from wearing headphones and viewing the screen (minimal risk), no risks are expected. You may freely adjust the volume. There is no direct medical or financial benefit beyond the compensation below.</p>
-
-        <p><b>4. 개인정보 보호 / Privacy &amp; Data Protection</b><br>
-        수집된 모든 정보와 반응 데이터는 이름 등 개인 식별 정보를 제거하고 고유 연구 코드(예: DG-4AKEHF)로만 관리됩니다. 수집 정보는 국적·나이·성별·모국어·제2외국어 여부·청각장애 여부·음악훈련 경험·영어 숙련도 관련 정보(지원자격 확인용)에 한합니다. 보상 지급용 연락처는 연구 반응 데이터와 분리된 별도 경로(Google Form)로 수집되어 연구 데이터와 연결되지 않으며, 보상 지급 완료 후 폐기됩니다. 본 연구는 모든 자료를 온라인으로 수집하며 별도의 서면 자료는 생성되지 않습니다. 전자 데이터는 연구자의 PC 및 클라우드에 보관되며, 연구 종료 후 3년간 보관 후 복구 불가능한 방법으로 영구 삭제됩니다.<br>
-        All collected information and response data are stripped of identifying details (e.g., name) and managed only under a unique research code. Data collected is limited to nationality, age, gender, native language, second-language status, hearing impairment, musical training, and English-proficiency information used to confirm eligibility. Contact information collected for compensation is gathered through a separate channel (Google Form), not linked to your response data, and discarded once compensation is sent. All data is collected online; no paper records are created. Electronic data is stored on the researcher's computer and cloud storage, retained for 3 years after the study ends, then permanently and irrecoverably deleted.</p>
-
-        <p><b>5. 보상 / Compensation</b><br>
-        한국인 참가자: 실험을 완료하면 10,000원 상당의 스타벅스 기프티콘을 카카오톡으로 지급합니다.<br>
-        해외 거주 외국인 참가자: 실험을 완료하면 US$10 상당의 Amazon e-gift card를 이메일로 지급합니다.<br>
-        Korean participants: upon completion, a 10,000 KRW Starbucks gift card will be sent via KakaoTalk.<br>
-        Participants residing abroad: upon completion, a USD 10 Amazon e-gift card will be sent via email.</p>
-
-        <p><b>6. 자발적 참여 및 철회 / Voluntary Participation &amp; Withdrawal</b><br>
-        연구 참여는 전적으로 자발적이며, 언제든지 어떠한 불이익 없이 참여를 거부하거나 중도에 철회할 수 있습니다. 철회 시 이미 수집된 정보와 데이터는 즉시 영구 파기됩니다.<br>
-        Participation is entirely voluntary. You may decline or withdraw at any time without any penalty. If you withdraw, any data already collected will be immediately and permanently destroyed.</p>
-
-        <p><b>7. 문의처 / Contact</b><br>
-        연구담당자: 조현지 (부산대학교 영어영문학과 석사과정, angelhj81@gmail.com, 010-7443-1048)<br>
-        연구대상자로서의 권리에 대한 문의: 부산대학교 생명윤리위원회(IRB)<br>
-        Study coordinator: Hyeonji Cho (M.A. student, Dept. of English Language &amp; Literature, Pusan National University; angelhj81@gmail.com; +82-10-7443-1048)<br>
-        For questions about your rights as a participant: Pusan National University IRB</p>
+        <p style="margin-top:18px"><b>1. 연구배경과 목적 / Background and Purpose of the Study</b></p>
+        <p style="margin:4px 0 10px">음성 지각(speech perception) 실험은 인간의 인지 처리 과정을 탐구하기 위한 주요 수단으로 활용되어 왔습니다. 인간의 언어 정보 처리가 하위 단계부터 상위 단계까지 순차적·독립적으로 이루어지는 모듈적(modular) 방식인지, 혹은 상·하위 단계가 상호작용하는 상호작용(interactive) 방식인지에 관한 논쟁에서, 상호작용 모델을 지지하는 주요 음향-음운론적 현상 중 하나가 바로 '어휘 매개 동시조음 보상 효과(Lexically Mediated Compensation for Coarticulation)'입니다.</p>
+        <p style="margin:4px 0 10px">Elman과 McClelland(1988)는 영어 원어민이 /s/(예: Christmas)와 /ʃ/(예: Foolish)로 끝나는 단어 뒤에 연속체 자극(tape–cape)을 들었을 때, 앞선 단어의 끝소리에 따른 동시조음 효과로 인지 경계선이 이동하는 인지 보상 효과를 확인하였습니다. 나아가 연구진은 단어의 끝소리를 /s/와 /ʃ/ 사이의 모호한 음소로 대체하여 음소 단서(phonemic cue)를 제거하더라도, 청자가 상위 어휘 단서(lexical cue)를 활용하여 하위 음소 판단에 영향을 미치는 현상을 증명함으로써 상호작용 인지 모델인 TRACE 모델을 지지하였습니다.</p>
+        <p style="margin:4px 0 10px">최근 해당 효과의 안정성과 재현성을 둘러싼 학술적 논쟁(Luthra et al., 2021; McQueen et al., 2023)이 지속됨에 따라, 본 효과가 서로 다른 모국어 배경을 가진 청자 집단(L1 vs. L2)에서도 동일하게 관찰되는지 정교한 통제 하에 재검증할 필요성이 제기됩니다.</p>
+        <p style="margin:4px 0 10px">본 연구는 선행연구의 어휘 매개 동시조음 효과를 재검증함과 동시에, 한국어 모국어 청자(L2 영어 화자)와 영어 모국어 청자(L1 영어 화자) 간의 해당 효과가 나타나는 양상을 비교 분석하는 것을 목적으로 합니다.</p>
+        <p style="margin:4px 0 10px">또한 L2 고숙련 화자가 음성 지각 과정에서 하위 음향 신호(Bottom-up)에만 의존하는지, 혹은 L1 원어민처럼 상위 어휘 맥락(Top-down)을 유연하게 활용하여 음향적 모호성을 보상하는지 밝혀냄으로써 제2언어 화자의 어휘-음운 통합 인지 처리 메커니즘을 명확히 규명하고자 합니다.</p>
+        <p style="margin:4px 0 10px">Speech perception experiments have long served as a key method for investigating human cognitive processing. Within the debate over whether language processing occurs in a strictly sequential, modular fashion or through interaction between higher- and lower-level processes, one of the key acoustic-phonological phenomena supporting the interactive model is "Lexically Mediated Compensation for Coarticulation."</p>
+        <p style="margin:4px 0 10px">Elman and McClelland (1988) found that native English speakers, upon hearing a continuum stimulus (tape–cape) following words ending in /s/ (e.g., Christmas) versus /ʃ/ (e.g., Foolish), showed a shift in their perceptual category boundary consistent with coarticulatory compensation based on the preceding word's final sound. Furthermore, even when the final sound of the preceding word was replaced with an ambiguous phoneme between /s/ and /ʃ/ — removing the phonemic cue itself — listeners still used higher-level lexical cues to influence lower-level phonemic judgments, supporting the interactive cognitive model known as TRACE.</p>
+        <p style="margin:4px 0 10px">Given ongoing academic debate about the robustness and replicability of this effect (Luthra et al., 2021; McQueen et al., 2023), there is a need to re-examine, under careful experimental control, whether this effect is equally observed across listener groups with different native-language backgrounds (L1 vs. L2).</p>
+        <p style="margin:4px 0 10px">This study aims to re-verify the lexically mediated coarticulation effect found in prior research, while comparing how this effect manifests between native Korean listeners (L2 English speakers) and native English listeners (L1 English speakers).</p>
+        <p style="margin:4px 0 10px">It also aims to clarify the cognitive mechanism of lexical-phonological integration in second-language speakers by determining whether highly proficient L2 speakers rely solely on bottom-up acoustic signals during speech perception, or whether, like native speakers, they flexibly use top-down lexical context to resolve acoustic ambiguity.</p>
+        <p style="margin-top:18px"><b>2. 연구대상(선정과 제외기준, 대상자수 산정근거 등) / Study Participants (Inclusion/Exclusion Criteria, Sample Size Justification, etc.)</b></p>
+        <p style="margin:4px 0 10px">1.1. 연구대상자 수 산정 근거: 본 연구의 필요 연구대상자 수는 G*Power 3.1.9.7 프로그램을 활용하여 산정하였습니다. 2(집단 간 요인: 한국어 화자, 영어 화자) × 2(집단 내 요인: 조음 위치 조건) 혼합 요인 분산분석(ANOVA: Repeated measures, within-between interaction)을 기준으로, 인지언어학 분야의 표준 효과 크기인 중간 효과 크기(Effect size f = 0.25), 유의수준 α = .05, 통계적 검정력(Statistical Power) 1-β = .80을 설정하여 산출하였습니다. 계산 결과 본 연구에 필요한 최소 총 샘플 수는 34명(집단당 최소 17명)으로 산출되었습니다. 본 연구에서는 불성실 응답, 중도 포기, 음성 인지 과제 반응시간 데이터 이상치로 인한 데이터 탈락률을 고려하여 각 집단당 25명씩, 총 50명을 최종 연구 대상자로 설정하였습니다.</p>
+        <p style="margin:4px 0 10px">1.2. 선정기준</p>
+        <p style="margin:4px 0 10px">1.2.1. 공통 선정기준: 만 20세 이상 만 39세 이하의 청년층으로, 정상 청력을 가진 자.</p>
+        <p style="margin:4px 0 10px">1.2.2. 한국어 모국어 화자 선정기준(고숙련 L2 영어 화자, 25명): 다음의 영어 숙련도 요건 중 하나 이상을 충족하는 자</p>
+        <p style="margin:4px 0 10px">1.2.2.1. 어학 성적: TOEIC 900점, TOEFL 80점, IELTS 6.5점 이상</p>
+        <p style="margin:4px 0 10px">1.2.2.2. 체류 경험: 영어 모국어 국가(미국, 캐나다 등) 거주 경험 3년 이상</p>
+        <p style="margin:4px 0 10px">1.2.2.3. 전공: 영어 관련 전공(영어영문학, 영어교육학 등) 학부 3학년 이상</p>
+        <p style="margin:4px 0 10px">1.2.2.4. 교육 경력: 입시 영어를 제외한 회화/발음 관련 영어 교육 종사자</p>
+        <p style="margin:4px 0 10px">1.2.3. 영어 모국어 화자 선정기준(L1, 25명): 영어권 국가에서 출생하고 성장했으며, 한국어를 제 2외국어로 하지 않는 만 20세~39세의 영어 모국어 화자.</p>
+        <p style="margin:4px 0 10px">1.2.4. 제외기준(공통): 청각 장애, 언어 장애, 신경과적 질환 또는 인지적 장애가 있는 자. 시력 교정 후에도 화면의 문자를 읽기 어려운 자.</p>
+        <p style="margin:4px 0 10px">2.1. Sample size justification: The required number of participants was calculated using G*Power 3.1.9.7. Based on a 2 (between-subjects factor: Korean speakers, English speakers) × 2 (within-subjects factor: place-of-articulation condition) mixed ANOVA (repeated measures, within-between interaction), using a medium effect size standard in cognitive linguistics (effect size f = 0.25), significance level α = .05, and statistical power 1-β = .80, the minimum required total sample size was calculated as 34 (minimum 17 per group). Accounting for anticipated data loss due to careless responding, dropout, and outliers in reaction-time data, this study sets a final target of 25 participants per group, for a total of 50 participants.</p>
+        <p style="margin:4px 0 10px">2.2. Inclusion Criteria</p>
+        <p style="margin:4px 0 10px">2.2.1. General criteria: Adults aged 20–39 with normal hearing.</p>
+        <p style="margin:4px 0 10px">2.2.2. Native Korean speakers (highly proficient L2 English speakers, 25 participants): must meet at least one of the following English proficiency requirements:</p>
+        <p style="margin:4px 0 10px">2.2.2.1. Test scores: TOEIC 900+, TOEFL 80+, or IELTS 6.5+</p>
+        <p style="margin:4px 0 10px">2.2.2.2. Residency experience: 3+ years living in an English-speaking country (e.g., the U.S., Canada)</p>
+        <p style="margin:4px 0 10px">2.2.2.3. Major: Third-year or above undergraduate in an English-related major (e.g., English Language and Literature, English Education)</p>
+        <p style="margin:4px 0 10px">2.2.2.4. Teaching experience: Currently working in English conversation/pronunciation education (excluding test-prep English instruction)</p>
+        <p style="margin:4px 0 10px">2.2.3. Native English speakers (L1, 25 participants): Born and raised in an English-speaking country, aged 20–39, for whom Korean is not a second language.</p>
+        <p style="margin:4px 0 10px">2.2.4. Exclusion Criteria (both groups): Hearing impairment, speech/language disorder, neurological or cognitive impairment. Difficulty reading on-screen text even with corrective lenses.</p>
+        <p style="margin-top:18px"><b>3. 연구 참여 기간, 방법 및 절차(동의취득방법, 중재, 자료수집방법 등 포함) / Study Duration, Procedures, and Methods (including consent procedure, data collection, etc.)</b></p>
+        <p style="margin:4px 0 10px">가. 본 실험은 웹 기반 온라인 실험으로, 공유되는 웹사이트 링크를 통해 진행됩니다. 참가자는 본인의 컴퓨터와 헤드폰을 활용하여 실험에 참여하며, 전체 소요 시간은 약 40분~50분입니다.</p>
+        <p style="margin:4px 0 10px">나. 연구 절차</p>
+        <p style="margin:4px 0 10px">1. 동의 취득(약 5분): 실험 웹사이트 접속 후 첫 화면에 본 설명문과 동일한 내용을 제시하고, 동의 버튼을 클릭하는 것으로 동의 의사를 수집합니다.</p>
+        <p style="margin:4px 0 10px">2. 사전검사(약 5분): 국적, 나이, 성별, 모국어, 제2외국어 여부, 청각 장애 여부, 음악적 훈련 경험 여부와 더불어, 지원 자격 확인을 위한 영어 숙련도 관련 정보(예: 어학 성적, 해외 거주 경험, 영어 관련 학과 재학 여부, 영어 회화/발음 교육 종사자 여부)를 기입하신 후 간단한 헤드폰 스크리닝 테스트를 실시합니다.</p>
+        <p style="margin:4px 0 10px">3. 본 실험(약 30분): 헤드폰을 착용하고 청각 자극을 들은 직후 강제 선택 과제(예: davino 또는 gavino 버튼 선택)를 수행합니다. 피로도 경감을 위해 세션 중간에 3회의 휴식 시간을 제공합니다.</p>
+        <p style="margin:4px 0 10px">4. 실험 종료 및 사후 설문 조사(약 10분): 간단한 영어 숙련도 테스트와 실험에 관한 몇 가지 질문에 답변합니다. 이후 보상 지급을 위한 별도의 플랫폼(Google form)을 통해 자동 생성된 실험 참가 코드와 연락처를 제출합니다.</p>
+        <p style="margin:4px 0 10px">a. This experiment is a fully web-based online experiment conducted via a shared website link. Participants take part using their own computer and headphones, and the total duration is approximately 40–50 minutes.</p>
+        <p style="margin:4px 0 10px">b. Study Procedure</p>
+        <p style="margin:4px 0 10px">1. Obtaining consent (~5 min): The same content as this information sheet is presented on the first screen after accessing the experiment website, and consent is recorded by clicking the "Agree" button.</p>
+        <p style="margin:4px 0 10px">2. Pre-screening (~5 min): Participants provide their nationality, age, gender, native language, whether they have a second language, hearing impairment status, and musical training experience, along with information to confirm eligibility (e.g., test scores, time lived abroad, enrollment in an English-related major, work in English conversation/pronunciation teaching), followed by a brief headphone screening test.</p>
+        <p style="margin:4px 0 10px">3. Main experiment (~30 min): Participants wear headphones and, immediately after hearing each auditory stimulus, perform a forced-choice task (e.g., selecting "davino" or "gavino"). Three self-paced breaks are provided during the session to reduce fatigue.</p>
+        <p style="margin:4px 0 10px">4. Debriefing and post-experiment survey (~10 min): Participants complete a brief English proficiency test and answer a few questions about their experience. They then submit an automatically generated participation code and contact information through a separate platform (Google Form) used for reward distribution.</p>
+        <p style="margin-top:18px"><b>4. 연구대상자가 준수해야 할 사항 / Participant Responsibilities</b></p>
+        <p style="margin:4px 0 10px">본 실험은 웹 기반 온라인 실험으로, 공유되는 웹사이트 링크를 통해 진행됩니다. 참가자는 본인의 컴퓨터와 헤드폰을 활용하여, 청취에 방해되는 큰 소음이 없는 환경에서 실험에 참여해야 합니다.</p>
+        <p style="margin:4px 0 10px">This experiment is a fully web-based online experiment conducted via a shared website link. Participants must use their own computer and headphones and take part in an environment free of loud noise that could interfere with listening.</p>
+        <p style="margin-top:18px"><b>5. 연구대상자에게 예상되는 위험과 이득 / Expected Risks and Benefits</b></p>
+        <p style="margin:4px 0 10px">가. 위험 요소: 헤드폰 착용 및 컴퓨터 화면 주시에 따른 경미한 피로감이 발생할 수 있으나, 신체적·정신적 최소위험(Minimal Risk) 이하입니다. 음량은 참가자 본인이 자유롭게 조절할 수 있으며, 실험 중 휴식 시간을 제공합니다.</p>
+        <p style="margin:4px 0 10px">나. 직접적 이익: 연구대상자에게 직접적인 의학적/금전적 이득(보상금 제외)은 없으나, 음성 지각 실험 참여를 통한 인지과학 연구 절차 체험 기회를 제공합니다.</p>
+        <p style="margin:4px 0 10px">a. Risks: Minor fatigue may result from wearing headphones and viewing the computer screen, but this is at or below minimal risk. Participants may freely adjust the volume themselves, and self-paced breaks are provided during the experiment.</p>
+        <p style="margin:4px 0 10px">b. Direct benefits: There is no direct medical or financial benefit to participants (aside from compensation), but participants will have the opportunity to experience a cognitive science research procedure through participation in a speech perception experiment.</p>
+        <p style="margin-top:18px"><b>6. 대상자의 사생활과 개인정보 보호(익명화, 암호화 및 보안대책 등 포함) / Protection of Privacy and Personal Information (anonymization, encryption, and security measures)</b></p>
+        <p style="margin:4px 0 10px">가. 익명화 및 식별코드 부여: 수집된 모든 정보 및 반응 데이터는 이름 등 개인 식별 정보를 제거하고 고유 연구 코드(예: DG-4AKEHF)로 대체하여 관리합니다. 수집되는 정보는 사전 검사 절차에서 기입하실 국적, 나이, 성별, 모국어, 제2외국어 여부, 청각 장애 여부, 음악적 훈련 경험 여부와 더불어, 지원 자격 확인을 위한 영어 숙련도 관련 정보(예: 어학 성적, 해외 거주 경험, 영어 관련 학과 재학 여부, 영어 회화/발음 교육 종사자 여부)에 한합니다. 보상용 연락처는 연구 반응 데이터와 분리된 별도 경로(Google form)로 수집되어 연구 데이터와 연결되지 않으며, 실험 후 보상 지급이 완료되면 폐기됩니다. 본 연구는 모든 자료를 온라인으로 수집하며, 별도의 서면 자료는 생성되지 않습니다.</p>
+        <p style="margin:4px 0 10px">나. 데이터 보관: 전자 데이터는 연구자의 PC 및 클라우드에 보관합니다.</p>
+        <p style="margin:4px 0 10px">다. 폐기 계획: 관련 법령 및 IRB 규정에 따라 연구 종료 후 3년간 보관하며, 보관 기간 종료 후 전자 파일을 복구 불가능한 방법으로 영구 삭제합니다.</p>
+        <p style="margin:4px 0 10px">a. Anonymization and ID coding: All collected information and response data are stripped of personally identifying information (such as name) and managed instead under a unique research code (e.g., DG-4AKEHF). The information collected is limited to what is entered during pre-screening — nationality, age, gender, native language, second-language status, hearing impairment status, musical training experience — along with information needed to confirm eligibility (e.g., test scores, time lived abroad, English-related major enrollment, English teaching experience). Contact information collected for reward distribution is gathered through a separate channel (Google Form) from the research response data and is not linked to it; it is discarded once the reward has been issued. This study collects all data online, and no physical/paper records are generated.</p>
+        <p style="margin:4px 0 10px">b. Data storage: Electronic data is stored on the researcher's personal computer and in cloud storage.</p>
+        <p style="margin:4px 0 10px">c. Disposal plan: In accordance with relevant laws and IRB regulations, data will be retained for 3 years after the end of the study, after which electronic files will be permanently deleted using an unrecoverable method.</p>
+        <p style="margin-top:18px"><b>7. 연구에 참여함으로써 연구대상자가 부담해야 할 예상 비용 / Expected Costs to Participants</b></p>
+        <p style="margin:4px 0 10px">본 연구 참여로 인해 연구대상자가 부담해야 하는 별도의 금전적 예상 비용은 없습니다.</p>
+        <p style="margin:4px 0 10px">There is no expected monetary cost to participants from taking part in this study.</p>
+        <p style="margin-top:18px"><b>8. 연구대상자 보상 및 연구 참여에 따른 손실에 대한 보상 / Compensation for Participation and Any Loss Incurred</b></p>
+        <p style="margin:4px 0 10px">실험 참가를 완료한 대상자에게 소요 시간에 대한 보상으로 카카오톡을 통해 소정의 기프티콘을 지급합니다.</p>
+        <p style="margin:4px 0 10px">Participants who complete the experiment will receive compensation for their time in the form of an e-gift card, sent via email.</p>
+        <p style="margin-top:18px"><b>9. 연구 참여를 제한하는 경우 / Circumstances That May Limit Participation</b></p>
+        <p style="margin:4px 0 10px">실험 참가 조건에 해당하지 않는 자(한국어나 영어가 모국어가 아닌 자, 또는 청각 장애, 언어 장애, 신경과적 질환 또는 인지적 장애가 있는 자, 시력 교정 후에도 화면의 문자를 읽기 어려운 자)는 연구 참여가 제한될 수 있습니다.</p>
+        <p style="margin:4px 0 10px">Individuals who do not meet the eligibility criteria (e.g., those whose native language is neither Korean nor English, or those with a hearing impairment, language disorder, neurological or cognitive impairment, or difficulty reading on-screen text even with corrective lenses) may be excluded from participation.</p>
+        <p style="margin-top:18px"><b>10. 연구대상자의 안전보호대책 / Safety Protection Measures</b></p>
+        <p style="margin:4px 0 10px">가. 실험 진행 중 대상자가 불편함이나 피로감을 호소할 경우 즉시 휴식을 취하게 하거나 실험을 중단할 수 있음을 사전에 안내합니다.</p>
+        <p style="margin:4px 0 10px">나. 연구 참여는 순수한 자의에 의해서만 이루어지며, 언제든지 불이익 없이 참여를 거부하거나 중도 철회할 수 있음을 명시합니다.</p>
+        <p style="margin:4px 0 10px">a. If a participant reports discomfort or fatigue during the experiment, they will be advised in advance that they may take an immediate break or discontinue the experiment.</p>
+        <p style="margin:4px 0 10px">b. Participation is entirely voluntary, and participants may decline to participate or withdraw at any time without any penalty, as clearly stated.</p>
+        <p style="margin-top:18px"><b>11. 개인정보제공(이번 연구에서 얻어진 자료를 제3자에게 제공하는 경우) / Disclosure of Personal Information (if data from this study is provided to third parties)</b></p>
+        <p style="margin:4px 0 10px">본 연구에서 수집된 모든 개인정보 및 연구 데이터는 연구 식별코드(예: DG-4AKEHF)로 익명화하여 엄격히 보호합니다. 수집된 자료는 연구 목적 이외의 용도로 절대 사용되지 않으며, 원칙적으로 제3자에게 제공되지 않습니다. 다만, 연구 결과의 검증 및 데이터 공유 문화(Open Science) 정책에 따라 연구 데이터를 학술지나 데이터 저장소에 공개할 수 있으며, 이 경우 개인을 식별할 수 있는 모든 정보는 완전히 삭제된 익명화 데이터 형태로만 제공합니다.</p>
+        <p style="margin:4px 0 10px">All personal information and research data collected in this study are strictly protected through anonymization using a research ID code (e.g., DG-4AKEHF). Collected data will never be used for any purpose other than this research and will not, in principle, be shared with third parties. However, in line with verification standards and Open Science data-sharing practices, research data may be made publicly available in academic journals or data repositories; in such cases, only fully anonymized data with all personally identifiable information removed will be shared.</p>
+        <p style="margin-top:18px"><b>12. 연구참여의 자발성과 동의의 철회 / Voluntary Participation and Right to Withdraw</b></p>
+        <p style="margin:4px 0 10px">본 연구 참여는 순수하게 연구대상자의 자발적인 의사에 따라 결정됩니다. 연구대상자는 연구 참여에 동의하지 않을 권리가 있으며, 연구가 시작된 후라도 언제든지 불이익이나 불이익에 대한 우려 없이 동의를 철회하고 참여를 중단할 수 있습니다. 동의 철회 시 이미 수집된 개인정보 및 반응 데이터는 즉시 영구 파기됩니다.</p>
+        <p style="margin:4px 0 10px">Participation in this study is based entirely on the voluntary decision of the participant. Participants have the right to decline participation, and may withdraw their consent and discontinue participation at any time, even after the study has begun, without any penalty or concern of disadvantage. If consent is withdrawn, any personal information and response data already collected will be permanently destroyed immediately.</p>
+        <p style="margin-top:18px"><b>13. 연구결과에 대한 열람 / Access to Study Results</b></p>
+        <p style="margin:4px 0 10px">연구자, 의뢰자, 정부기관 실태조사 시 연구결과의 열람이 가능합니다.</p>
+        <p style="margin:4px 0 10px">Study results may be reviewed by the researchers, the sponsor, or government regulatory bodies conducting an audit.</p>
+        <p style="margin-top:18px"><b>14. 연구자의 연락처 / Researcher Contact Information</b></p>
+        <p style="margin:4px 0 10px">연구 진행 과정에서 질문이나 의문 사항이 있거나, 연구 관련 상해/불편함이 발생한 경우 언제든지 아래 연구자에게 연락 주시기 바랍니다.</p>
+        <p style="margin:4px 0 10px">연구책임자: 조현지 (부산대학교 영어영문학과 석사과정, angelhj81@gmail.com, 010-7443-1048)</p>
+        <p style="margin:4px 0 10px">If you have any questions or concerns during the course of the study, or experience any research-related injury or discomfort, please contact the researcher below at any time.</p>
+        <p style="margin:4px 0 10px">Principal Investigator (Study Coordinator): Hyeonji Cho (Master's student, Department of English Language and Literature, Pusan National University; angelhj81@gmail.com; +82-10-7443-1048)</p>
       </div>
 
-      <label class="checkline" id="consentCheckWrap" style="justify-content:center;font-size:14.5px;margin:14px 0 4px;line-height:1.5;text-align:left;max-width:520px;margin-left:auto;margin-right:auto">
+      <p style="font-size:14px;line-height:1.6;text-align:left;max-width:560px;margin:16px auto 4px">
+        본인은 위 설명문의 내용(연구의 목적, 절차, 예상되는 위험과 이익, 개인정보 보호 방법, 보상, 자발적 참여와 철회의 권리 등)을 모두 읽고 충분히 이해하였으며, 이에 대해 자유롭게 질문하고 답변을 받을 기회가 있었습니다. 본인은 자발적으로 이 연구에 참여할 것에 동의합니다.<br><br>
+        I have read and fully understood the content of the information sheet above (the purpose, procedures, expected risks and benefits, personal information protection, compensation, and my right to voluntary participation and withdrawal), and I have had the opportunity to ask questions and receive satisfactory answers. I voluntarily agree to participate in this study.
+      </p>
+
+      <label class="checkline" id="consentCheckWrap" style="justify-content:center;font-size:14.5px;margin:14px 0 4px;line-height:1.6;text-align:left;max-width:560px;margin-left:auto;margin-right:auto">
         <input type="checkbox" id="consentCheck" style="margin-top:3px">
-        <span>위 내용을 모두 읽고 이해하였으며, 본 연구 참여에 자발적으로 동의합니다.<br>
-        I have read and understood all of the above and voluntarily agree to participate in this study.</span>
+        <span>"위 내용을 모두 읽고 이해하였으며, 본 연구 참여에 자발적으로 동의합니다."<br>
+        "I have read and understood all of the above and voluntarily agree to participate in this study."</span>
       </label>
     </div>`,
     choices:["동의하고 시작하기 / Agree and Start"],
