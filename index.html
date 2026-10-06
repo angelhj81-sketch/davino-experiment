@@ -521,16 +521,70 @@ async function main(){
     message:"<p style='color:#6b7280'>Loading… 잠시만 기다려 주세요.</p>", max_load_time:60000,
     error_message:"<p>일부 파일을 불러오지 못했습니다. 새로고침 해주세요.<br>Some files failed to load. Please refresh.</p>"});
 
-  // --- 1. 동의서 ---
+  // --- 1. 동의서 (설명문 내용 + 온라인 체크박스 방식 동의 취득) ---
   timeline.push({type:jsPsychHtmlButtonResponse,
-    stimulus:`<div><h2 style="text-align:center;color:var(--accent)">Speech Perception Experiment</h2>
-      <div class="consent-body">
-        <p><em>[ IRB 승인 동의서 전문을 여기에 넣으세요. 아래는 자리표시용입니다. ]</em></p>
-        <p>You are invited to take part in a research study on speech perception. Participation is voluntary; you may stop anytime without penalty. The study takes about 40–60 minutes and involves listening to short audio clips and choosing between two options.</p>
-        <p>Your responses are recorded anonymously. No personally identifying information is collected.</p>
+    stimulus:`<div>
+      <h2 style="text-align:center;color:var(--accent);margin-bottom:2px">Participant Information &amp; Consent</h2>
+      <p style="text-align:center;color:var(--muted);font-size:14px;margin-top:0">연구대상자 설명문 및 동의서</p>
+      <p style="text-align:center;font-size:13px;color:var(--muted);line-height:1.5">
+        Lexically Mediated Compensation for Coarticulation in L1 and L2 Speech Perception:<br>
+        The Impact of Preceding Sibilants on a /da/-/ga/ Continuum</p>
+      <div class="consent-body" id="consentBody">
+        <p><b>1. 연구 목적 / Purpose</b><br>
+        본 연구는 선행 어휘의 끝소리가 이어지는 음성 지각에 미치는 영향을 한국어 모국어 화자와 영어 모국어 화자 간에 비교 분석하는 것을 목적으로 합니다.<br>
+        This study compares how the final sound of a preceding word influences speech perception between native Korean and native English listeners.</p>
+
+        <p><b>2. 참여 대상 및 절차 / Participants &amp; Procedure</b><br>
+        본 실험은 웹 기반 온라인 실험으로, 참가자는 본인의 컴퓨터와 헤드폰을 활용하여 참여하며 전체 소요 시간은 약 40분~50분입니다. 절차는 (1) 동의 취득 → (2) 사전검사(국적·나이·성별·모국어 등 기입 및 헤드폰 스크리닝) → (3) 본 실험(청각 자극을 듣고 davino/gavino 중 선택, 중간 휴식 3회 포함) → (4) 사후 설문 순으로 진행됩니다.<br>
+        This is a fully web-based experiment using your own computer and headphones, lasting about 40–50 minutes: (1) consent, (2) pre-screening (nationality, age, gender, native language, etc. plus a headphone check), (3) the main task (choosing "davino" or "gavino" after each sound, with three short breaks), and (4) a brief post-experiment survey.</p>
+
+        <p><b>3. 위험과 이익 / Risks &amp; Benefits</b><br>
+        헤드폰 착용 및 화면 주시로 인한 경미한 피로감 외에 예상되는 위험은 없으며(최소위험 이하), 음량은 본인이 자유롭게 조절할 수 있습니다. 직접적인 금전적/의학적 이득은 보상 외에 없습니다.<br>
+        Aside from mild fatigue from wearing headphones and viewing the screen (minimal risk), no risks are expected. You may freely adjust the volume. There is no direct medical or financial benefit beyond the compensation below.</p>
+
+        <p><b>4. 개인정보 보호 / Privacy &amp; Data Protection</b><br>
+        수집된 모든 정보와 반응 데이터는 이름 등 개인 식별 정보를 제거하고 고유 연구 코드(예: DG-4AKEHF)로만 관리됩니다. 수집 정보는 국적·나이·성별·모국어·제2외국어 여부·청각장애 여부·음악훈련 경험·영어 숙련도 관련 정보(지원자격 확인용)에 한합니다. 보상 지급용 연락처는 연구 반응 데이터와 분리된 별도 경로(Google Form)로 수집되어 연구 데이터와 연결되지 않으며, 보상 지급 완료 후 폐기됩니다. 본 연구는 모든 자료를 온라인으로 수집하며 별도의 서면 자료는 생성되지 않습니다. 전자 데이터는 연구자의 PC 및 클라우드에 보관되며, 연구 종료 후 3년간 보관 후 복구 불가능한 방법으로 영구 삭제됩니다.<br>
+        All collected information and response data are stripped of identifying details (e.g., name) and managed only under a unique research code. Data collected is limited to nationality, age, gender, native language, second-language status, hearing impairment, musical training, and English-proficiency information used to confirm eligibility. Contact information collected for compensation is gathered through a separate channel (Google Form), not linked to your response data, and discarded once compensation is sent. All data is collected online; no paper records are created. Electronic data is stored on the researcher's computer and cloud storage, retained for 3 years after the study ends, then permanently and irrecoverably deleted.</p>
+
+        <p><b>5. 보상 / Compensation</b><br>
+        한국인 참가자: 실험을 완료하면 10,000원 상당의 스타벅스 기프티콘을 카카오톡으로 지급합니다.<br>
+        해외 거주 외국인 참가자: 실험을 완료하면 US$10 상당의 Amazon e-gift card를 이메일로 지급합니다.<br>
+        Korean participants: upon completion, a 10,000 KRW Starbucks gift card will be sent via KakaoTalk.<br>
+        Participants residing abroad: upon completion, a USD 10 Amazon e-gift card will be sent via email.</p>
+
+        <p><b>6. 자발적 참여 및 철회 / Voluntary Participation &amp; Withdrawal</b><br>
+        연구 참여는 전적으로 자발적이며, 언제든지 어떠한 불이익 없이 참여를 거부하거나 중도에 철회할 수 있습니다. 철회 시 이미 수집된 정보와 데이터는 즉시 영구 파기됩니다.<br>
+        Participation is entirely voluntary. You may decline or withdraw at any time without any penalty. If you withdraw, any data already collected will be immediately and permanently destroyed.</p>
+
+        <p><b>7. 문의처 / Contact</b><br>
+        연구담당자: 조현지 (부산대학교 영어영문학과 석사과정, angelhj81@gmail.com, 010-7443-1048)<br>
+        연구대상자로서의 권리에 대한 문의: 부산대학교 생명윤리위원회(IRB)<br>
+        Study coordinator: Hyeonji Cho (M.A. student, Dept. of English Language &amp; Literature, Pusan National University; angelhj81@gmail.com; +82-10-7443-1048)<br>
+        For questions about your rights as a participant: Pusan National University IRB</p>
       </div>
-      <p style="text-align:center">By clicking below, you confirm that you have read and understood the above and agree to participate.</p></div>`,
-    choices:["I agree — continue"]});
+
+      <label class="checkline" id="consentCheckWrap" style="justify-content:center;font-size:14.5px;margin:14px 0 4px;line-height:1.5;text-align:left;max-width:520px;margin-left:auto;margin-right:auto">
+        <input type="checkbox" id="consentCheck" style="margin-top:3px">
+        <span>위 내용을 모두 읽고 이해하였으며, 본 연구 참여에 자발적으로 동의합니다.<br>
+        I have read and understood all of the above and voluntarily agree to participate in this study.</span>
+      </label>
+    </div>`,
+    choices:["동의하고 시작하기 / Agree and Start"],
+    on_load:function(){
+      const btnWrap=document.querySelector('#jspsych-html-button-response-btngroup');
+      const btn=btnWrap?btnWrap.querySelector('button'):null;
+      const chk=document.getElementById('consentCheck');
+      if(btn){
+        btn.disabled=true; btn.style.opacity='0.45'; btn.style.cursor='not-allowed';
+      }
+      if(chk && btn){
+        chk.addEventListener('change',()=>{
+          btn.disabled=!chk.checked;
+          btn.style.opacity=chk.checked?'1':'0.45';
+          btn.style.cursor=chk.checked?'pointer':'not-allowed';
+        });
+      }
+    }});
 
   // --- 2. 설문 (검증 실패 시 같은 화면 유지) ---
   const surveyNode={type:jsPsychHtmlButtonResponse, stimulus:surveyHTML, choices:["Submit"],
@@ -683,7 +737,7 @@ async function main(){
   const engAnnounce={type:jsPsychHtmlButtonResponse,
     stimulus:`<div class="instr"><h2>One last task</h2>
       <p>The main experiment is complete. Before you finish, here is a short <b>sound-matching task</b> (${ENG_TASK.length} questions).</p>
-      <p>A word will appear at the top with part of it in <b>bold and underlined</b>. Read the word aloud or say it in your head, then think of the sound that the <b>bold, underlined</b> letters make. Then play <b>Audio A</b> and <b>Audio B</b> — as many times as you like — and choose the one that contains the <b>same sound</b>.</p></div>`,
+      <p>A word will appear at the top with part of it in <b>bold and underlined</b>. Think of the sound those letters make. Then play <b>Audio A</b> and <b>Audio B</b> — as many times as you like — and choose the one that contains the <b>same sound</b>.</p></div>`,
     choices:["Start"],
     on_load:()=>flushResponses(true)};  // 영어 과제 전에 본 실험 응답을 모두 저장
   // 안내 + 문항들을 하나의 timeline으로 묶음 (본 실험까지 온 참가자 전원)
